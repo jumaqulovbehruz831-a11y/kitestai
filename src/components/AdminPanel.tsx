@@ -61,6 +61,7 @@ import {
   HardDrive,
   Cloud,
   Download,
+  Play,
 } from 'lucide-react';
 import { OFFICIAL_YOUTUBE_URL } from '../types';
 import { KIDTEST_LOGO_DATA_URL } from './KitestEmblem';

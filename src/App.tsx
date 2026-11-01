@@ -55,6 +55,7 @@ import {
   BACKGROUND_PRESETS,
 } from './components/BackgroundCustomizerModal';
 import { signInWithRealGooglePopup } from './firebase';
+import { getClientState } from './services/clientApiInterceptor';
 import {
   KitestKiteLogo,
   KitestSplashScreen,
@@ -240,33 +241,79 @@ export default function App() {
     });
   };
 
-  // Real platform state fetched from server
-  const [users, setUsers] = useState<User[]>([]);
-  const [tests, setTests] = useState<TestItem[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [contests, setContests] = useState<Contest[]>([]);
-  const [courses, setCourses] = useState<CourseItem[]>([]);
-  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
-  const [algorithms, setAlgorithms] = useState<AlgorithmTopic[]>([]);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [books, setBooks] = useState<Book3DItem[]>([]);
+  // Synchronously initialize state from client cache / seed data
+  const initialClientState = useMemo(() => {
+    try {
+      return getClientState();
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const [users, setUsers] = useState<User[]>(() =>
+    Array.isArray(initialClientState.users) ? initialClientState.users : []
+  );
+  const [tests, setTests] = useState<TestItem[]>(() =>
+    Array.isArray(initialClientState.tests) ? initialClientState.tests : []
+  );
+  const [submissions, setSubmissions] = useState<Submission[]>(() =>
+    Array.isArray(initialClientState.submissions) ? initialClientState.submissions : []
+  );
+  const [contests, setContests] = useState<Contest[]>(() =>
+    Array.isArray(initialClientState.contests) ? initialClientState.contests : []
+  );
+  const [courses, setCourses] = useState<CourseItem[]>(() =>
+    Array.isArray(initialClientState.courses) ? initialClientState.courses : []
+  );
+  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>(() =>
+    Array.isArray(initialClientState.studyPlans) ? initialClientState.studyPlans : []
+  );
+  const [algorithms, setAlgorithms] = useState<AlgorithmTopic[]>(() =>
+    Array.isArray(initialClientState.algorithms) ? initialClientState.algorithms : []
+  );
+  const [classrooms, setClassrooms] = useState<Classroom[]>(() =>
+    Array.isArray(initialClientState.classrooms) ? initialClientState.classrooms : []
+  );
+  const [blogs, setBlogs] = useState<BlogPost[]>(() =>
+    Array.isArray(initialClientState.blogs) ? initialClientState.blogs : []
+  );
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() =>
+    Array.isArray(initialClientState.teamMembers) ? initialClientState.teamMembers : []
+  );
+  const [books, setBooks] = useState<Book3DItem[]>(() =>
+    Array.isArray(initialClientState.books) ? initialClientState.books : []
+  );
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
-  const [storeCertificates, setStoreCertificates] = useState<StoreCertificate[]>([]);
+  const [storeCertificates, setStoreCertificates] = useState<StoreCertificate[]>(() =>
+    Array.isArray(initialClientState.storeCertificates)
+      ? initialClientState.storeCertificates
+      : []
+  );
   const [purchasedCertificates, setPurchasedCertificates] = useState<
     UserPurchasedCertificate[]
-  >([]);
-  const [wheelConfig, setWheelConfig] = useState<PlatformWheelConfig>({
-    globalEnabled: false,
-    globalWheelEnabled: false,
-    defaultSpinsPerGrant: 1,
-    recentSpins: [],
-    updatedAt: '',
-  });
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
+  >(() =>
+    Array.isArray(initialClientState.purchasedCertificates)
+      ? initialClientState.purchasedCertificates
+      : []
+  );
+  const [wheelConfig, setWheelConfig] = useState<PlatformWheelConfig>(() =>
+    initialClientState.wheelConfig || {
+      globalEnabled: false,
+      globalWheelEnabled: false,
+      defaultSpinsPerGrant: 1,
+      recentSpins: [],
+      updatedAt: '',
+    }
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    Array.isArray(initialClientState.messages) ? initialClientState.messages : []
+  );
+  const [chatGroups, setChatGroups] = useState<ChatGroup[]>(() =>
+    Array.isArray(initialClientState.chatGroups) ? initialClientState.chatGroups : []
+  );
+  const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>(() =>
+    Array.isArray(initialClientState.onlineUsers) ? initialClientState.onlineUsers : []
+  );
   const [screenshotProtectionEnabled, setScreenshotProtectionEnabled] =
     useState<boolean>(true);
   const [screenshotBlockedAlert, setScreenshotBlockedAlert] =

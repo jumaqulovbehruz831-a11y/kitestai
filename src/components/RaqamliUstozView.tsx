@@ -188,7 +188,7 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
       const data = await res.json();
       if (res.ok) {
         setCurrentRoom(data.room);
-        playKitestSound('reward', soundEnabled);
+        playKitestSound('victory', soundEnabled);
       } else {
         alert(data.error || "Xona yaratib bo'lmadi.");
       }
@@ -214,7 +214,7 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
       const data = await res.json();
       if (res.ok) {
         setCurrentRoom(data.room);
-        playKitestSound('reward', soundEnabled);
+        playKitestSound('victory', soundEnabled);
         confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
       }
     } catch {}
@@ -244,7 +244,7 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
         });
 
         if (data.isCorrect) {
-          playKitestSound('reward', soundEnabled);
+          playKitestSound('coin', soundEnabled);
           setCorrectAnswersCount((prev) => prev + 1);
           setEarnedScore((prev) => prev + data.earnedPoints);
 

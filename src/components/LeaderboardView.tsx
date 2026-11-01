@@ -28,6 +28,7 @@ import {
   UserCheck,
   Bell,
   Building2,
+  Zap,
 } from 'lucide-react';
 
 interface LeaderboardViewProps {

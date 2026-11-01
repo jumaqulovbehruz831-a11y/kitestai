@@ -268,9 +268,9 @@ export const ContestView: React.FC<ContestViewProps> = ({
                 Olimpiadaga kiritiladigan masalalar (A, B, C, D...):
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-lg bg-slate-950 border border-slate-800 max-h-40 overflow-y-auto">
-                {tests.map((t) => (
+                {tests.map((t, tIdx) => (
                   <label
-                    key={t.id}
+                    key={`pick_test_${t.id}_${tIdx}`}
                     className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"
                   >
                     <input
@@ -315,14 +315,14 @@ export const ContestView: React.FC<ContestViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left 4 Cols: Contests List */}
           <div className="lg:col-span-4 space-y-3">
-            {contests.map((c) => {
+            {contests.map((c, cIdx) => {
               const isSelected = activeContest?.id === c.id;
               const isRegistered =
                 Boolean(currentUser) && c.registeredUserIds.includes(currentUser!.id);
 
               return (
                 <div
-                  key={c.id}
+                  key={`contest_${c.id}_${cIdx}`}
                   onClick={() => setSelectedContestId(c.id)}
                   className={`p-5 rounded-2xl border cursor-pointer transition-colors space-y-3 ${
                     isSelected
@@ -436,7 +436,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                     const letter = String.fromCharCode(65 + idx);
                     return (
                       <div
-                        key={foundTest.id}
+                        key={`c_problem_${foundTest.id}_${idx}`}
                         onClick={() => onSelectTest(foundTest)}
                         className="p-4 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 cursor-pointer flex items-center justify-between gap-4 transition-all"
                       >
@@ -480,7 +480,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                         <th className="py-3 px-3">Ishtirokchi</th>
                         <th className="py-3 px-3 text-right">Jami Ball</th>
                         {contestTests.map((t, idx) => (
-                          <th key={t.id} className="py-3 px-3 text-center">
+                          <th key={`hdr_test_${t.id}_${idx}`} className="py-3 px-3 text-center">
                             {String.fromCharCode(65 + idx)}
                           </th>
                         ))}
@@ -498,7 +498,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                         </tr>
                       ) : (
                         icpcStandings.map((row, rIdx) => (
-                          <tr key={row.userId} className="hover:bg-slate-900/60">
+                          <tr key={`standing_row_${row.userId || 'u'}_${rIdx}`} className="hover:bg-slate-900/60">
                             <td className="py-3 px-3 font-mono font-bold text-slate-300">
                               #{rIdx + 1}
                             </td>
@@ -512,7 +512,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                               const letter = String.fromCharCode(65 + idx);
                               const pts = row.solvedByLetter[letter];
                               return (
-                                <td key={t.id} className="py-3 px-3 text-center font-mono">
+                                <td key={`cell_${row.userId}_${t.id}_${idx}`} className="py-3 px-3 text-center font-mono">
                                   {pts ? (
                                     <span className="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold">
                                       +{pts}

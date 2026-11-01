@@ -476,11 +476,11 @@ export const KitestGramView: React.FC<KitestGramViewProps> = ({
 
         {/* Chats List */}
         <div className="flex-1 overflow-y-auto divide-y divide-[#242F3D]/40">
-          {filteredChats.map((chat) => {
+          {filteredChats.map((chat, idx) => {
             const isSelected = chat.id === activeChatId;
             return (
               <div
-                key={chat.id}
+                key={`kg_chat_${chat.id}_${idx}`}
                 onClick={() => {
                   setActiveChatId(chat.id);
                   playKitestSound('click', soundEnabled);
@@ -613,7 +613,7 @@ export const KitestGramView: React.FC<KitestGramViewProps> = ({
             </span>
           </div>
 
-          {chatMessages.map((msg) => {
+          {chatMessages.map((msg, idx) => {
             const isMe = msg.senderId === currentUser?.id;
             const rankMeta = msg.senderScore
               ? RANK_CLASS_META[computeRankClass(msg.senderScore)]
@@ -621,7 +621,7 @@ export const KitestGramView: React.FC<KitestGramViewProps> = ({
 
             return (
               <motion.div
-                key={msg.id}
+                key={`kg_msg_${msg.id}_${idx}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex items-end gap-2 group ${isMe ? 'justify-end' : 'justify-start'}`}

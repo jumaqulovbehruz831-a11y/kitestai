@@ -1456,9 +1456,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pendingCreatorRequests.map((reqUser) => (
+            {pendingCreatorRequests.map((reqUser, rIdx) => (
               <div
-                key={reqUser.id}
+                key={`pending_req_${reqUser.id}_${rIdx}`}
                 className="p-4 rounded-xl bg-slate-950 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div>
@@ -1998,14 +1998,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70 text-sm">
-                  {filteredUsers.map((u) => {
+                  {filteredUsers.map((u, uIdx) => {
                     const isMainAdmin =
                       u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ||
                       u.role === 'admin';
                     const rankCls = computeRankClass(u.totalScore, u.rankClass);
                     return (
                       <tr
-                        key={u.id}
+                        key={`adm_usr_${u.id}_${uIdx}`}
                         className="hover:bg-slate-800/40 transition-colors"
                       >
                         <td className="py-3.5 px-4 font-mono font-bold text-slate-400">
@@ -2431,8 +2431,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {users.slice(0, 15).map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-800/40">
+                  {users.slice(0, 15).map((u, uIdx) => (
+                    <tr key={`quick_u_${u.id}_${uIdx}`} className="hover:bg-slate-800/40">
                       <td className="py-2.5 px-3">
                         <div className="font-bold text-white flex items-center gap-1.5">
                           <span>{u.name}</span>
@@ -3716,11 +3716,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70 text-sm">
-                  {filteredUsers.map((u) => {
+                  {filteredUsers.map((u, uIdx) => {
                     const isMainAdmin =
                       u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
                     return (
-                      <tr key={u.id} className="hover:bg-slate-800/40">
+                      <tr key={`full_u_${u.id}_${uIdx}`} className="hover:bg-slate-800/40">
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-white">{u.name}</div>
                           <div className="text-xs text-slate-400 font-mono">
@@ -3829,8 +3829,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/70 text-sm">
-                {tests.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-800/40">
+                {tests.map((t, tIdx) => (
+                  <tr key={`adm_test_row_${t.id}_${tIdx}`} className="hover:bg-slate-800/40">
                     <td className="py-3.5 px-4 font-mono text-xs text-slate-400">
                       #{t.id}
                     </td>

@@ -441,11 +441,11 @@ export const Books3DView: React.FC<Books3DViewProps> = ({
 
       {/* 3D Bookshelf Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {books.map((book) => {
+        {books.map((book, bIdx) => {
           const isSelected = activeBook?.id === book.id;
           return (
             <div
-              key={book.id}
+              key={`b3d_${book.id}_${bIdx}`}
               onClick={() => {
                 playKitestSound('click', soundEnabled);
                 setSelectedBookId(book.id);

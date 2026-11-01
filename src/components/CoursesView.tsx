@@ -1146,7 +1146,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
             </h3>
 
             <div className="space-y-3">
-              {filteredCourses.map((course) => {
+              {filteredCourses.map((course, cIdx) => {
                 const isSelected = activeCourse?.id === course.id;
                 const canDelete =
                   isAdminUnlocked ||
@@ -1155,7 +1155,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
 
                 return (
                   <div
-                    key={course.id}
+                    key={`crs_${course.id}_${cIdx}`}
                     onClick={() => {
                       setSelectedCourseId(course.id);
                       setActivePartIndex(0);

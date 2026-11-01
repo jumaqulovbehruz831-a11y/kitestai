@@ -547,9 +547,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             .filter((item) =>
               announcementCategory === 'all' ? true : item.category === announcementCategory
             )
-            .map((item) => (
+            .map((item, idx) => (
               <div
-                key={item.id}
+                key={`ann_card_${item.id || 'c'}_${idx}`}
                 className={`p-5 rounded-2xl border transition-all space-y-4 flex flex-col justify-between ${
                   item.isPinned
                     ? 'border-amber-200 bg-gradient-to-br from-amber-50/50 via-white to-white shadow-sm'
@@ -1045,9 +1045,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {showcaseCourses.map((c) => (
+          {showcaseCourses.map((c, cIdx) => (
             <div
-              key={c.id}
+              key={`sc_course_${c.id}_${cIdx}`}
               onClick={() => onNavigate(c.targetTab)}
               className="group bg-white rounded-3xl p-4 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
             >

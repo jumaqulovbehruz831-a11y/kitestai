@@ -520,13 +520,13 @@ export const StoreShopView: React.FC<StoreShopViewProps> = ({
       {/* 3. PRODUCT CARDS GRID                                                     */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map((item) => {
+        {filteredItems.map((item, iIdx) => {
           const isPurchased = ownedItemIds.has(item.id);
           const canAfford = Boolean(currentUser && (currentUser.totalScore || 0) >= item.costPoints);
 
           return (
             <div
-              key={item.id}
+              key={`shop_item_${item.id}_${iIdx}`}
               className={`rounded-3xl border transition-all p-5 flex flex-col justify-between space-y-4 bg-white relative overflow-hidden ${
                 item.isPopular
                   ? 'border-emerald-300 ring-2 ring-emerald-400/20 shadow-md'

@@ -480,7 +480,7 @@ export const StudyPlansView: React.FC<StudyPlansViewProps> = ({
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-3">
-            {studyPlans.map((plan) => {
+            {studyPlans.map((plan, pIdx) => {
               const isSelected = activePlan?.id === plan.id;
               const myCompleted =
                 (currentUser && plan.completedStepMap?.[currentUser.id]) || [];
@@ -491,7 +491,7 @@ export const StudyPlansView: React.FC<StudyPlansViewProps> = ({
 
               return (
                 <div
-                  key={plan.id}
+                  key={`sp_${plan.id}_${pIdx}`}
                   onClick={() => setSelectedPlanId(plan.id)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2.5 ${
                     isSelected
@@ -969,14 +969,14 @@ export const AlgorithmsView: React.FC<AlgorithmsViewProps> = ({
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-2.5">
-            {algorithms.map((alg) => {
+            {algorithms.map((alg, aIdx) => {
               const isSelected = activeAlg?.id === alg.id;
               const isLearned = Boolean(
                 currentUser && alg.learnedUserIds.includes(currentUser.id)
               );
               return (
                 <div
-                  key={alg.id}
+                  key={`alg_${alg.id}_${aIdx}`}
                   onClick={() => {
                     setSelectedAlgId(alg.id);
                     setStepIdx(0);
@@ -1601,11 +1601,11 @@ export const MyClassesView: React.FC<MyClassesViewProps> = ({
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-3">
-            {classrooms.map((cls) => {
+            {classrooms.map((cls, cIdx) => {
               const isSelected = activeClass?.id === cls.id;
               return (
                 <div
-                  key={cls.id}
+                  key={`cls_${cls.id}_${cIdx}`}
                   onClick={() => setSelectedClassId(cls.id)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
                     isSelected
@@ -1961,9 +1961,9 @@ export const BlogsView: React.FC<BlogsViewProps> = ({
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-3">
-            {blogs.map((b) => (
+            {blogs.map((b, bIdx) => (
               <div
-                key={b.id}
+                key={`blog_${b.id}_${bIdx}`}
                 onClick={() => setSelectedBlogId(b.id)}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
                   activeBlog?.id === b.id
@@ -2726,9 +2726,9 @@ export const OurTeamView: React.FC<OurTeamViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {teamMembers
             .filter((m) => !m.isFounder)
-            .map((member) => (
+            .map((member, mIdx) => (
               <div
-                key={member.id}
+                key={`team_${member.id}_${mIdx}`}
                 className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between gap-4"
               >
                 <div className="flex items-center gap-4">

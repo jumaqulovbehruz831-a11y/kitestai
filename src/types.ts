@@ -425,6 +425,31 @@ export interface User {
   savedNotes?: UserNoteItem[];
   studyNotes?: UserNoteItem[];
   permissions?: UserPermissions;
+  codingScore?: number;
+  solvedCodingCount?: number;
+  solvedTestsCount?: number;
+}
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  type: 'video' | 'image';
+  url: string;
+  category: 'entrance_video' | 'lesson_video' | 'banner' | 'background' | 'showcase' | 'olympiad';
+  description?: string;
+  createdAt: string;
+}
+
+export interface CodingConfig {
+  pythonReward: number;
+  cppReward: number;
+  jsReward: number;
+  htmlReward: number;
+  olimpiadaReward: number;
+  dailyMaxScore: number;
+  awardCoinsBonus: number;
+  digitalMentorExternalUrl?: string;
+  updatedAt?: string;
 }
 
 export type Difficulty = 'Oson' | "O'rta" | 'Qiyin' | 'Olimpiada';

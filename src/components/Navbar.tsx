@@ -433,13 +433,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {activeNotifications.map((notif) => {
+                {activeNotifications.map((notif, idx) => {
                   const isRead =
                     notif.readBy?.includes(currentUser?.id || '') ||
                     readNotifs.includes(notif.id);
                   return (
                     <div
-                      key={notif.id}
+                      key={`notif_${notif.id || 'item'}_${idx}`}
                       onClick={() => {
                         setReadNotifs((prev) => [...prev, notif.id]);
                         if (currentUser) {

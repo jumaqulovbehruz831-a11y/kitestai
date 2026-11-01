@@ -479,7 +479,7 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
 
                   return (
                     <motion.div
-                      key={card.id}
+                      key={`ru_card_${card.id}_${idx}`}
                       whileHover={{ scale: isAnswered ? 1 : 1.03 }}
                       whileTap={{ scale: isAnswered ? 1 : 0.97 }}
                       onClick={() => {
@@ -621,7 +621,7 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
                     .sort((a, b) => b.score - a.score)
                     .map((p, idx) => (
                       <div
-                        key={p.userId}
+                        key={`ru_p_${p.userId}_${idx}`}
                         className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold ${
                           idx === 0
                             ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
@@ -741,9 +741,9 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rooms.map((room) => (
+            {rooms.map((room, idx) => (
               <div
-                key={room.roomCode}
+                key={`ru_room_${room.roomCode}_${idx}`}
                 className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between gap-4 transition-all"
               >
                 <div>

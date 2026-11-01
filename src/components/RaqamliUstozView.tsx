@@ -1,30 +1,70 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { User } from '../types';
 import { playKitestSound } from './KitestEmblem';
+import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 import {
   GraduationCap,
   Play,
   CheckCircle2,
+  XCircle,
   AlertCircle,
   Sparkles,
   Trophy,
   Zap,
   Coins,
   Star,
-  Terminal,
-  Code2,
-  ShieldCheck,
-  Bot,
-  Brain,
+  Users,
+  Copy,
+  Check,
+  Send,
+  PlusCircle,
+  Plus,
+  Lock,
+  Unlock,
+  KeyRound,
+  RotateCcw,
+  Award,
   ChevronRight,
   ArrowRight,
-  RotateCcw,
-  Flame,
-  Award,
-  BookOpen,
+  Radio,
+  Share2,
 } from 'lucide-react';
+
+interface LiveQuizCard {
+  id: string;
+  title: string;
+  imageEmoji: string;
+  imageUrl?: string;
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  points: number;
+  explanation: string;
+}
+
+interface LiveQuizParticipant {
+  userId: string;
+  userName: string;
+  avatarEmoji?: string;
+  score: number;
+  correctCount: number;
+  answeredCardIds: string[];
+}
+
+interface LiveQuizRoom {
+  roomCode: string;
+  title: string;
+  subject: string;
+  hostId: string;
+  hostName: string;
+  isStarted: boolean;
+  isFinished: boolean;
+  createdAt: string;
+  cards: LiveQuizCard[];
+  participants: LiveQuizParticipant[];
+}
 
 interface RaqamliUstozViewProps {
   currentUser: User | null;
@@ -34,689 +74,711 @@ interface RaqamliUstozViewProps {
   soundEnabled?: boolean;
 }
 
-interface LevelItem {
-  id: string;
-  levelNumber: number;
-  title: string;
-  mentorName: string;
-  mentorRole: string;
-  mentorAvatar: string;
-  category: 'algorithm' | 'web_code' | 'ai_prompt' | 'cybersecurity';
-  description: string;
-  taskInstruction: string;
-  starterCode?: string;
-  expectedOutputOrAnswer: string;
-  options?: string[];
-  correctOptionIndex?: number;
-  explanation: string;
-  rewardPoints: number;
-  rewardCoins: number;
-  rewardStars: number;
-}
-
-const DEFAULT_LEVELS: LevelItem[] = [
-  {
-    id: 'dm_lvl_1',
-    levelNumber: 1,
-    title: "1-Bosqich: Algoritmik Fikr va O'zgaruvchilar",
-    mentorName: 'Azizbek Ustoz',
-    mentorRole: 'Algoritm va Mantiq bo‘yicha Bosh Mentor',
-    mentorAvatar: '🧑‍🏫',
-    category: 'algorithm',
-    description: 'Dasturlashning birinchi qoidasi — maʼlumotlarni o‘zgaruvchilarda saqlash va arifmetik amallar bajarish.',
-    taskInstruction: 'Python dasturida a = 15 va b = 25 sonlari yig‘indisini hisoblab, ekranga chiqaring.',
-    starterCode: 'a = 15\nb = 25\n# Yig‘indini ekranga chiqaramiz:\nprint(a + b)',
-    expectedOutputOrAnswer: '40',
-    options: ['30', '40', '35', '50'],
-    correctOptionIndex: 1,
-    explanation: 'a va b o‘zgaruvchilar qo‘shilganda 15 + 25 = 40 qiymati hosil bo‘ladi va print() funksiyasi uni terminalga chiqaradi.',
-    rewardPoints: 25,
-    rewardCoins: 15,
-    rewardStars: 1,
-  },
-  {
-    id: 'dm_lvl_2',
-    levelNumber: 2,
-    title: '2-Bosqich: Shart Operatorlari va Tarmoqlanish',
-    mentorName: 'Malika Ustoz',
-    mentorRole: 'Python va Dasturiy Muhandislik Ustozi',
-    mentorAvatar: '👩‍💻',
-    category: 'web_code',
-    description: "Agar ball 80 dan katta yoki teng bo‘lsa 'Aʼlo', aks holda 'Davom eting' deb chiqaradigan shart operatori.",
-    taskInstruction: "score = 85. 'if score >= 80:' qanday natija beradi?",
-    starterCode: 'score = 85\nif score >= 80:\n    print("A\'lo")\nelse:\n    print("Davom eting")',
-    expectedOutputOrAnswer: "A'lo",
-    options: ['Davom eting', "A'lo", 'Xatolik', '0'],
-    correctOptionIndex: 1,
-    explanation: "85 soni 80 dan katta bo‘lgani sababli, shart rost (True) bo‘lib 'Aʼlo' chop etiladi.",
-    rewardPoints: 30,
-    rewardCoins: 20,
-    rewardStars: 1,
-  },
-  {
-    id: 'dm_lvl_3',
-    levelNumber: 3,
-    title: '3-Bosqich: Sunʼiy Intellekt va Prompt Muhandisligi',
-    mentorName: 'Kitest AI Mentor',
-    mentorRole: 'Katta Til Modellari va Neyrotizim Ustozi',
-    mentorAvatar: '🤖',
-    category: 'ai_prompt',
-    description: 'Neyrotarmoqlarga to‘g‘ri va samarali ko‘rsatma (prompt) berish qoidalari.',
-    taskInstruction: 'Sunʼiy intellektdan eng aniq va sifatli kod yechimini olish uchun qaysi prompt eng yaxshi hisoblanadi?',
-    expectedOutputOrAnswer: 'Rol, vazifa, kirish parametrlari va kutilayotgan formatni aniq ko‘rsatish',
-    options: [
-      'Faqat bitta so‘z yozish',
-      'Rol, vazifa, kirish parametrlari va kutilayotgan formatni aniq ko‘rsatish',
-      'Ixtiyoriy matn tashlash',
-      'Kodni o‘rniga rasm qidirish',
-    ],
-    correctOptionIndex: 1,
-    explanation: 'Professional prompt muhandisligi: Kontekst + Rol + Aniq shart + Format talabi orqali eng yuqori aniqlik beradi.',
-    rewardPoints: 35,
-    rewardCoins: 25,
-    rewardStars: 1,
-  },
-  {
-    id: 'dm_lvl_4',
-    levelNumber: 4,
-    title: '4-Bosqich: Kiberxavfsizlik va Shifrlash Asoslari',
-    mentorName: 'Jasur Ustoz',
-    mentorRole: 'Axborot Xavfsizligi va Shifrlash Eksperti',
-    mentorAvatar: '🛡️',
-    category: 'cybersecurity',
-    description: 'Parollarni xavfsiz saqlash va maʼlumotlarni himoyalash sirlari.',
-    taskInstruction: 'Kuchli va xavfsiz parol qaysi talablarga javob berishi shart?',
-    expectedOutputOrAnswer: 'Kamida 10 ta belgi, katta-kichik harflar, raqamlar va maxsus belgilar',
-    options: [
-      '12345678',
-      'Faqat o‘z ismi',
-      'Kamida 10 ta belgi, katta-kichik harflar, raqamlar va maxsus belgilar',
-      'Telefon raqami',
-    ],
-    correctOptionIndex: 2,
-    explanation: 'Murakkab entropiyaga ega parollar xakerlik bruteforce hujumlariga 100% bardoshli bo‘ladi.',
-    rewardPoints: 40,
-    rewardCoins: 30,
-    rewardStars: 1,
-  },
-  {
-    id: 'dm_lvl_5',
-    levelNumber: 5,
-    title: '5-Bosqich: Web Frontend & DOM Manipulyatsiyasi',
-    mentorName: 'Malika Ustoz',
-    mentorRole: 'Full-Stack Web Dasturchi',
-    mentorAvatar: '👩‍💻',
-    category: 'web_code',
-    description: 'HTML, CSS va JavaScript yordamida interaktiv tugmalar va elementlar yaratish.',
-    taskInstruction: 'JavaScript da elementni ID bo‘yicha topish uchun qaysi metod qo‘llaniladi?',
-    starterCode: "const btn = document.getElementById('myButton');\nbtn.addEventListener('click', () => console.log('Bosing!'));",
-    expectedOutputOrAnswer: 'document.getElementById',
-    options: ['document.select()', 'document.getElementById', 'window.find()', 'DOM.pick()'],
-    correctOptionIndex: 1,
-    explanation: 'document.getElementById eng tezkor va standart DOM selektori hisoblanadi.',
-    rewardPoints: 45,
-    rewardCoins: 35,
-    rewardStars: 2,
-  },
-];
-
 export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
   currentUser,
   onUpdateUser,
   onRequireLogin,
-  onNavigateTab,
   soundEnabled = true,
 }) => {
-  const [levels, setLevels] = useState<LevelItem[]>(DEFAULT_LEVELS);
-  const [activeLevelIndex, setActiveLevelIndex] = useState(0);
-  const [userCode, setUserCode] = useState('');
+  const [activeMode, setActiveMode] = useState<'student' | 'teacher' | 'single'>('student');
+  const [rooms, setRooms] = useState<LiveQuizRoom[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<LiveQuizRoom | null>(null);
+  const [inputRoomCode, setInputRoomCode] = useState<string>('');
+  const [isJoining, setIsJoining] = useState<boolean>(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  // Active quiz gameplay state (matching user's drawn diagram)
+  const [activeCard, setActiveCard] = useState<LiveQuizCard | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [terminalOutput, setTerminalOutput] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-  const [completedLevelIds, setCompletedLevelIds] = useState<string[]>(() => {
+  const [answerResult, setAnswerResult] = useState<{ isCorrect: boolean; explanation: string } | null>(null);
+  const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(0);
+  const [earnedScore, setEarnedScore] = useState<number>(0);
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
+
+  // Host creation state
+  const [newTitle, setNewTitle] = useState<string>('Respublika Matematika & CHSB Quiz');
+  const [newSubject, setNewSubject] = useState<string>('Matematika');
+  const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
+  const [requestSent, setRequestSent] = useState<boolean>(false);
+
+  // Poll active rooms every 3s
+  const fetchRooms = async () => {
     try {
-      const saved = localStorage.getItem('kitest_raqamli_ustoz_completed');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
-  const [activeMode, setActiveMode] = useState<'levels' | 'blitz'>('levels');
-  const [blitzScore, setBlitzScore] = useState(0);
-  const [blitzTimer, setBlitzTimer] = useState(60);
-  const [isBlitzRunning, setIsBlitzRunning] = useState(false);
-
-  const currentLevel = levels[activeLevelIndex] || levels[0];
-
-  useEffect(() => {
-    fetch('/api/digital-mentor/levels')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && Array.isArray(data.levels) && data.levels.length > 0) {
-          setLevels(data.levels);
+      const res = await fetch('/api/digital-mentor/quiz-rooms');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.rooms)) {
+          setRooms(data.rooms);
+          if (currentRoom) {
+            const updated = data.rooms.find((r: LiveQuizRoom) => r.roomCode === currentRoom.roomCode);
+            if (updated) setCurrentRoom(updated);
+          }
         }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (currentLevel.starterCode) {
-      setUserCode(currentLevel.starterCode);
-    } else {
-      setUserCode('');
-    }
-    setSelectedOption(null);
-    setTerminalOutput(null);
-    setVerificationResult(null);
-  }, [activeLevelIndex, currentLevel]);
-
-  // Blitz countdown timer
-  useEffect(() => {
-    if (!isBlitzRunning) return;
-    const interval = setInterval(() => {
-      setBlitzTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsBlitzRunning(false);
-          playKitestSound('fanfare', soundEnabled);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isBlitzRunning, soundEnabled]);
-
-  const handleRunCode = () => {
-    playKitestSound('click', soundEnabled);
-    setTerminalOutput('⏳ Kod bajarilmoqda...\n------------------------');
-    setTimeout(() => {
-      if (currentLevel.starterCode) {
-        setTerminalOutput(`Terminal Natijasi:\n>>> ${currentLevel.expectedOutputOrAnswer}\n[Jarayon muvaffaqiyatli yakunlandi (Exit code: 0)]`);
-      } else {
-        setTerminalOutput('Natija muvaffaqiyatli qabul qilindi.');
       }
-    }, 350);
+    } catch {}
   };
 
-  const handleVerifyStep = async () => {
+  useEffect(() => {
+    fetchRooms();
+    const interval = setInterval(fetchRooms, 2500);
+    return () => clearInterval(interval);
+  }, [currentRoom?.roomCode]);
+
+  // Join room with code
+  const handleJoinWithCode = async (codeToJoin?: string) => {
     if (!currentUser) {
       onRequireLogin();
       return;
     }
 
-    setIsVerifying(true);
-    setVerificationResult(null);
-
-    let isCorrect = false;
-
-    if (currentLevel.options && currentLevel.correctOptionIndex !== undefined) {
-      isCorrect = selectedOption === currentLevel.correctOptionIndex;
-    } else {
-      isCorrect = true;
-    }
-
-    if (!isCorrect) {
-      playKitestSound('warning', soundEnabled);
-      setIsVerifying(false);
-      setVerificationResult({
-        success: false,
-        message: `Noto‘g‘ri javob! ${currentLevel.mentorName} maslahati: Savol shartini diqqat bilan o‘qib qaytadan urinib ko‘ring.`,
-      });
+    const code = String(codeToJoin || inputRoomCode).trim();
+    if (!code) {
+      setJoinError("6 xonali xona kodini kiriting!");
       return;
     }
 
+    setIsJoining(true);
+    setJoinError(null);
     try {
-      const res = await fetch('/api/digital-mentor/complete-step', {
+      const res = await fetch('/api/digital-mentor/quiz-rooms/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: code,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          avatarEmoji: currentUser.avatarEmoji || '🎓',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentRoom(data.room);
+        setActiveMode('student');
+        playKitestSound('success', soundEnabled);
+      } else {
+        setJoinError(data.error || "Xonaga ulanib bo'lmadi.");
+        playKitestSound('click', soundEnabled);
+      }
+    } catch (err: any) {
+      setJoinError(`Tarmoq xatosi: ${err.message}`);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // Host creates room
+  const handleCreateRoom = async () => {
+    if (!currentUser) {
+      onRequireLogin();
+      return;
+    }
+
+    setIsCreatingRoom(true);
+    try {
+      const res = await fetch('/api/digital-mentor/quiz-rooms/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle.trim(),
+          subject: newSubject.trim(),
+          hostId: currentUser.id,
+          hostName: currentUser.name,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentRoom(data.room);
+        playKitestSound('reward', soundEnabled);
+      } else {
+        alert(data.error || "Xona yaratib bo'lmadi.");
+      }
+    } catch (err: any) {
+      alert(`Xatolik: ${err.message}`);
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
+
+  // Host starts the game
+  const handleStartGame = async () => {
+    if (!currentRoom || !currentUser) return;
+    try {
+      const res = await fetch('/api/digital-mentor/quiz-rooms/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+          hostId: currentUser.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentRoom(data.room);
+        playKitestSound('reward', soundEnabled);
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      }
+    } catch {}
+  };
+
+  // Student answers a card
+  const handleAnswerCard = async (optionIdx: number) => {
+    if (!currentRoom || !activeCard || !currentUser || selectedOption !== null) return;
+    setSelectedOption(optionIdx);
+
+    try {
+      const res = await fetch('/api/digital-mentor/quiz-rooms/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+          userId: currentUser.id,
+          cardId: activeCard.id,
+          selectedOptionIndex: optionIdx,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAnswerResult({
+          isCorrect: data.isCorrect,
+          explanation: data.explanation,
+        });
+
+        if (data.isCorrect) {
+          playKitestSound('reward', soundEnabled);
+          setCorrectAnswersCount((prev) => prev + 1);
+          setEarnedScore((prev) => prev + data.earnedPoints);
+
+          // Trigger floating flying ball animation!
+          triggerScoreReward({
+            type: 'points',
+            amount: data.earnedPoints,
+            label: 'Ball (Raqamli Ustoz)',
+          });
+
+          onUpdateUser({
+            ...currentUser,
+            totalScore: (currentUser.totalScore || 0) + data.earnedPoints,
+            rating: (currentUser.rating || 0) + data.earnedPoints,
+            coins: (currentUser.coins || 0) + 5,
+          });
+        } else {
+          playKitestSound('click', soundEnabled);
+        }
+      }
+    } catch {}
+  };
+
+  // Request teacher permission from admin
+  const handleRequestHostPermission = async () => {
+    if (!currentUser) {
+      onRequireLogin();
+      return;
+    }
+    try {
+      await fetch('/api/digital-mentor/request-host-permission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
-          levelId: currentLevel.id,
+          userName: currentUser.name,
         }),
       });
-      const data = await res.json();
-      if (data.user) {
-        onUpdateUser(data.user);
-      }
-    } catch {
-      // Optimistic update
-      onUpdateUser({
-        ...currentUser,
-        totalScore: (currentUser.totalScore || 0) + currentLevel.rewardPoints,
-        coins: (currentUser.coins || 0) + currentLevel.rewardCoins,
-        stars: (currentUser.stars || 0) + currentLevel.rewardStars,
-      });
-    }
-
-    setIsVerifying(false);
-    playKitestSound('fanfare', soundEnabled);
-    try {
-      confetti({ particleCount: 85, spread: 70, origin: { y: 0.6 } });
+      setRequestSent(true);
+      playKitestSound('success', soundEnabled);
     } catch {}
-
-    const nextCompleted = Array.from(new Set([...completedLevelIds, currentLevel.id]));
-    setCompletedLevelIds(nextCompleted);
-    try {
-      localStorage.setItem('kitest_raqamli_ustoz_completed', JSON.stringify(nextCompleted));
-    } catch {}
-
-    setVerificationResult({
-      success: true,
-      message: `🎉 Tabriklaymiz! +${currentLevel.rewardPoints} Ball, +${currentLevel.rewardCoins} Coins va +${currentLevel.rewardStars} Yulduz ⭐ berildi!`,
-    });
   };
 
-  const handleNextLevel = () => {
-    if (activeLevelIndex < levels.length - 1) {
-      setActiveLevelIndex((prev) => prev + 1);
-    }
-  };
+  const isTeacherAuthorized =
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'creator' ||
+    (currentUser?.totalScore || 0) >= 1000;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12 font-sans">
-      {/* GOOGLE RAQAMLI USTOZ BANNER */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-indigo-500/30 p-6 sm:p-8 shadow-2xl text-white">
-        <div className="absolute -right-10 -bottom-10 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-0 right-1/4 w-60 h-60 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-300 text-xs font-black uppercase tracking-wider shadow-inner">
-              <span className="flex h-2 w-2 rounded-full bg-blue-400 animate-ping" />
-              <span>Google & KITEST Raqamli Ta'lim</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-              Google Raqamli Ustoz: <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-amber-300 bg-clip-text text-transparent">Interaktiv O‘yin</span>
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Algoritmlar, Veb Dasturlash, Katta Til Modellari (AI) va Kiberxavfsizlik bo‘yicha Google ning “Raqamli Ustoz” metodikasidagi interaktiv topshiriqlarni bajaring, ballar va real yulduzlar yig‘ing!
-            </p>
-
-            {/* User Real Balance live preview */}
-            {currentUser && (
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                <span className="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700 text-sky-300 font-bold flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-sky-400" />
-                  <span>{currentUser.totalScore || 0} Ball</span>
-                </span>
-                <span className="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700 text-amber-300 font-bold flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{currentUser.coins || 0} Coin</span>
-                </span>
-                <span className="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700 text-purple-300 font-bold flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{currentUser.stars || 1} Yulduz ⭐</span>
-                </span>
-              </div>
-            )}
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-orange-950/60 to-slate-900 border border-orange-500/30 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-black tracking-wide uppercase mb-2">
+            <span className="w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+            Google Raqamli Ustoz • Quizizz & Discord Uslubidagi Jonli Bellashuv
           </div>
-
-          {/* Mode Switcher */}
-          <div className="flex sm:flex-col gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveMode('levels')}
-              className={`py-2.5 px-5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                activeMode === 'levels'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4 text-blue-300" />
-              <span>Bosqichli Mashg‘ulotlar</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveMode('blitz');
-                setIsBlitzRunning(true);
-                setBlitzTimer(60);
-                setBlitzScore(0);
-              }}
-              className={`py-2.5 px-5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-                activeMode === 'blitz'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-lg shadow-amber-500/30 ring-2 ring-amber-300'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <Flame className="w-4 h-4 text-amber-400" />
-              <span>60-Soniyali Blits Poyga</span>
-            </button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
+            <GraduationCap className="w-8 h-8 text-orange-400" />
+            <span>Raqamli Ustoz Jonli Quiz & Kod Bellashuvi</span>
+          </h1>
+          <p className="text-xs text-slate-300 max-w-2xl mt-1.5">
+            O'qituvchi xona ochadi va maxsus 6 xonali kod beradi. O'quvchilar kod orqali xonaga qo'shiladi va savollar kartochkalarda chiqib, to'g'ri javoblarga ballar beriladi!
+          </p>
         </div>
 
-        {/* Level Progression Dots */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between overflow-x-auto gap-2 pb-1">
-          {levels.map((lvl, idx) => {
-            const isCompleted = completedLevelIds.includes(lvl.id);
-            const isCurrent = idx === activeLevelIndex;
-            return (
-              <button
-                key={lvl.id}
-                type="button"
-                onClick={() => setActiveLevelIndex(idx)}
-                className={`flex-1 min-w-[120px] p-2.5 rounded-2xl border transition-all text-left cursor-pointer ${
-                  isCurrent
-                    ? 'bg-blue-600/30 border-blue-400 text-white shadow-md'
-                    : isCompleted
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span>{lvl.levelNumber}-Bosqich</span>
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <span>{lvl.mentorAvatar}</span>
-                  )}
-                </div>
-                <div className="text-[10px] truncate text-slate-300 mt-1">{lvl.mentorName}</div>
-              </button>
-            );
-          })}
+        {/* Quick Join / Room Code */}
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <input
+            type="text"
+            maxLength={6}
+            value={inputRoomCode}
+            onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="6 xonali kod (masalan: 749201)"
+            className="px-4 py-2.5 rounded-2xl bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm font-bold tracking-widest focus:border-orange-500 focus:outline-none w-48"
+          />
+          <button
+            type="button"
+            onClick={() => handleJoinWithCode()}
+            disabled={isJoining}
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all cursor-pointer whitespace-nowrap"
+          >
+            {isJoining ? "Ulanmoqda..." : "🚀 Qo'shilish"}
+          </button>
         </div>
       </div>
 
-      {/* MODE 1: BOSQICHLI MASHG'ULOTLAR */}
-      {activeMode === 'levels' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left 7 Cols: Mentor Instruction & Interactive Tasks */}
-          <div className="lg:col-span-7 space-y-5">
-            {/* Mentor Speech Card */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-3xl shadow-lg shadow-blue-500/30 shrink-0">
-                  {currentLevel.mentorAvatar}
+      {joinError && (
+        <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-xs font-bold text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{joinError}</span>
+        </div>
+      )}
+
+      {/* Mode Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveMode('student')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            activeMode === 'student'
+              ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 shadow-lg shadow-orange-500/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>🎒 O'quvchi Rejimi (Xonaga Ulanish)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMode('teacher')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            activeMode === 'teacher'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>👨‍🏫 Ustoz Rejimi (Xona Yaratish)</span>
+        </button>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 1. STUDENT IN-GAME EXPERIENCE (MATCHING USER HANDWRITTEN DIAGRAM) */}
+      {/* ======================================================== */}
+      {currentRoom && (
+        <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-6">
+          {/* Header Stats Bar matching image 2: "to'g'ri bir soni: ball:" */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Jonli Xona:</span>
+              <h2 className="text-lg font-black text-white flex items-center gap-2">
+                <span>{currentRoom.title}</span>
+                <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-mono">
+                  PIN: {currentRoom.roomCode}
+                </span>
+              </h2>
+            </div>
+
+            {/* Exactly matching image 2 stats: "to'g'ri bir soni: ball:" */}
+            <div className="flex items-center gap-4">
+              <div className="px-4 py-2 rounded-xl bg-slate-800/90 border border-slate-700 text-center">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">To'g'ri Javoblar</div>
+                <div className="text-base font-black text-emerald-400 font-mono">
+                  ✅ {correctAnswersCount} ta
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-black text-slate-900 dark:text-white">
-                      {currentLevel.mentorName}
-                    </h2>
-                    <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
-                      {currentLevel.mentorRole}
+              </div>
+
+              <div className="px-4 py-2 rounded-xl bg-slate-800/90 border border-slate-700 text-center">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">To'plangan Ball</div>
+                <div className="text-base font-black text-amber-400 font-mono flex items-center justify-center gap-1">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>+{earnedScore} Ball</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentRoom(null)}
+                className="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Xonadan Chiqish
+              </button>
+            </div>
+          </div>
+
+          {/* Room status / Lobby */}
+          {!currentRoom.isStarted ? (
+            <div className="p-8 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center text-3xl mx-auto animate-bounce">
+                ⏳
+              </div>
+              <h3 className="text-xl font-black text-white">Ustoz o'yinni boshlashini kuting...</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Barcha ishtirokchilar kod orqali qo'shilmoqda. Ustoz "Start" tugmasini bosishi bilanoq savollar kartochkalari ochiladi!
+              </p>
+
+              {/* Joined participants list */}
+              <div className="pt-4 border-t border-slate-800 max-w-lg mx-auto">
+                <div className="text-xs font-bold text-slate-400 mb-3 flex items-center justify-center gap-2">
+                  <Users className="w-4 h-4 text-sky-400" />
+                  <span>Qo'shilgan ishtirokchilar ({currentRoom.participants.length} kishi):</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {currentRoom.participants.map((p, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-xs font-bold text-white flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span>{p.avatarEmoji || '🎓'}</span>
+                      <span>{p.userName}</span>
                     </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {currentLevel.title}
+                  ))}
+                </div>
+              </div>
+
+              {/* Host Start Button */}
+              {(currentRoom.hostId === currentUser?.id || currentUser?.role === 'admin') && (
+                <div className="pt-4">
+                  <button
+                    type="button"
+                    onClick={handleStartGame}
+                    className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 transition-all cursor-pointer"
+                  >
+                    🚀 O'yinni Boshlash (Start Quiz)
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Started Game: Visual Cards Grid matching Image 2 diagram */
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-orange-400" />
+                    <span>Kartochkani Tanlang va Savolga Javob Bering:</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Har bir kartochkada alohida masala va to'g'ri javob uchun ball belgilangan.
                   </p>
                 </div>
               </div>
 
-              {/* Mentor Dialogue Bubble */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
-                "{currentLevel.description}"
-              </div>
+              {/* Cards Grid matching drawing in Document_18_2_0b71b289.jpg */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {currentRoom.cards.map((card, idx) => {
+                  const isAnswered = currentRoom.participants
+                    .find((p) => p.userId === currentUser?.id)
+                    ?.answeredCardIds.includes(card.id);
 
-              {/* Task Instruction Box */}
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-700/50 space-y-2">
-                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs font-black uppercase tracking-wider">
-                  <Brain className="w-4 h-4" />
-                  <span>Amaliy Topshiriq:</span>
-                </div>
-                <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-amber-100">
-                  {currentLevel.taskInstruction}
-                </p>
-              </div>
-
-              {/* Multiple Choice Options if provided */}
-              {currentLevel.options && (
-                <div className="space-y-2 pt-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-500">
-                    To‘g‘ri variantni tanlang:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {currentLevel.options.map((opt, oIdx) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setSelectedOption(oIdx)}
-                        className={`p-3 rounded-2xl border text-xs font-bold text-left transition-all cursor-pointer flex items-center justify-between ${
-                          selectedOption === oIdx
-                            ? 'bg-blue-600 text-white border-blue-500 shadow-md ring-2 ring-blue-400'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-blue-400'
-                        }`}
-                      >
-                        <span>{opt}</span>
-                        {selectedOption === oIdx && <CheckCircle2 className="w-4 h-4 text-white" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons: Run Code & Submit */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                {currentLevel.starterCode && (
-                  <button
-                    type="button"
-                    onClick={handleRunCode}
-                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-                    <span>Kodni Bajarish</span>
-                  </button>
-                )}
-
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    type="button"
-                    onClick={handleVerifyStep}
-                    disabled={isVerifying}
-                    className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/25 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isVerifying ? 'Tekshirilmoqda...' : 'Javobni Tekshirish'}</span>
-                  </button>
-
-                  {completedLevelIds.includes(currentLevel.id) && (
-                    <button
-                      type="button"
-                      onClick={handleNextLevel}
-                      className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-md"
+                  return (
+                    <motion.div
+                      key={card.id}
+                      whileHover={{ scale: isAnswered ? 1 : 1.03 }}
+                      whileTap={{ scale: isAnswered ? 1 : 0.97 }}
+                      onClick={() => {
+                        if (!isAnswered) {
+                          setActiveCard(card);
+                          setSelectedOption(null);
+                          setAnswerResult(null);
+                          playKitestSound('click', soundEnabled);
+                        }
+                      }}
+                      className={`p-5 rounded-2xl border flex flex-col items-center text-center justify-between min-h-[170px] transition-all cursor-pointer ${
+                        isAnswered
+                          ? 'bg-slate-950/60 border-slate-800 opacity-60 cursor-not-allowed'
+                          : activeCard?.id === card.id
+                          ? 'bg-gradient-to-b from-orange-950/80 to-slate-900 border-orange-500 ring-2 ring-orange-400 shadow-xl'
+                          : 'bg-slate-950/80 hover:bg-slate-900 border-slate-800 hover:border-slate-700 shadow-lg'
+                      }`}
                     >
-                      <span>Keyingisi</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center text-3xl shadow-inner mb-3">
+                        {card.imageEmoji || '🎯'}
+                      </div>
+
+                      <div className="w-full">
+                        <h4 className="text-xs font-black text-white truncate">{card.title}</h4>
+                        <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-400">
+                          <Zap className="w-3 h-3" />
+                          <span>+{card.points} Ball</span>
+                        </div>
+                      </div>
+
+                      {isAnswered && (
+                        <div className="mt-2 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Yechildi</span>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
               </div>
 
-              {/* Verification Result Feedback */}
+              {/* Active Question Modal/Card matching handwritten diagram (A, B, C, D choices) */}
               <AnimatePresence>
-                {verificationResult && (
+                {activeCard && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className={`p-4 rounded-2xl border text-xs sm:text-sm font-bold flex items-start gap-3 ${
-                      verificationResult.success
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 text-emerald-800 dark:text-emerald-200'
-                        : 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 text-rose-800 dark:text-rose-200'
-                    }`}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="p-6 rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-orange-500/50 shadow-2xl space-y-5"
                   >
-                    {verificationResult.success ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <div>{verificationResult.message}</div>
-                      <div className="text-xs font-normal mt-1 opacity-90">
-                        {currentLevel.explanation}
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{activeCard.imageEmoji}</span>
+                        <div>
+                          <h4 className="text-base font-black text-white">{activeCard.title}</h4>
+                          <span className="text-xs font-bold text-amber-400">Mukofot: +{activeCard.points} Ball</span>
+                        </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveCard(null)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                      >
+                        Yopish
+                      </button>
                     </div>
+
+                    {/* Question text */}
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-white font-bold text-sm sm:text-base leading-relaxed">
+                      {activeCard.question}
+                    </div>
+
+                    {/* Options Grid (A, B, C, D) as drawn in Image 2 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {activeCard.options.map((opt, optIdx) => {
+                        const letter = ['A', 'B', 'C', 'D'][optIdx];
+                        const isChosen = selectedOption === optIdx;
+                        const isCorrectOption = optIdx === activeCard.correctOptionIndex;
+
+                        let btnStyle = 'bg-slate-900/90 border-slate-800 text-slate-200 hover:bg-slate-850 hover:border-slate-700';
+                        if (answerResult) {
+                          if (isCorrectOption) {
+                            btnStyle = 'bg-emerald-950 border-emerald-500 text-emerald-200 ring-2 ring-emerald-400';
+                          } else if (isChosen && !answerResult.isCorrect) {
+                            btnStyle = 'bg-rose-950 border-rose-500 text-rose-200 ring-2 ring-rose-400';
+                          }
+                        }
+
+                        return (
+                          <button
+                            key={optIdx}
+                            type="button"
+                            disabled={selectedOption !== null}
+                            onClick={() => handleAnswerCard(optIdx)}
+                            className={`p-4 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${btnStyle} disabled:cursor-default`}
+                          >
+                            <span className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center font-black text-xs text-white shrink-0">
+                              {letter}
+                            </span>
+                            <span className="text-xs sm:text-sm font-semibold flex-1">{opt}</span>
+                            {answerResult && isCorrectOption && (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                            )}
+                            {answerResult && isChosen && !answerResult.isCorrect && (
+                              <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Feedback Explanation */}
+                    {answerResult && (
+                      <div className={`p-4 rounded-2xl border text-xs font-bold leading-relaxed ${
+                        answerResult.isCorrect
+                          ? 'bg-emerald-950/70 border-emerald-500/60 text-emerald-200'
+                          : 'bg-rose-950/70 border-rose-500/60 text-rose-200'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1 text-sm font-black">
+                          {answerResult.isCorrect ? "✅ TO'G'RI JAVOB! (+ Ball qo'shildi)" : "❌ XATO JAVOB (X)"}
+                        </div>
+                        <p>{answerResult.explanation}</p>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-          </div>
 
-          {/* Right 5 Cols: Interactive Code Terminal & Reward Card */}
-          <div className="lg:col-span-5 space-y-5">
-            {/* Interactive Code Editor (if starter code exists) */}
-            {currentLevel.starterCode ? (
-              <div className="rounded-3xl border border-slate-800 bg-[#0E1621] shadow-2xl overflow-hidden text-slate-100 flex flex-col h-80">
-                <div className="px-4 py-2.5 bg-[#17212B] border-b border-slate-800 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-slate-300 font-mono font-bold">
-                    <Code2 className="w-4 h-4 text-sky-400" />
-                    <span>main.py (Interaktiv Muhit)</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono">
-                    Python 3.12
-                  </span>
-                </div>
-                <textarea
-                  value={userCode}
-                  onChange={(e) => setUserCode(e.target.value)}
-                  className="flex-1 w-full bg-[#0E1621] p-4 text-xs sm:text-sm font-mono text-emerald-400 focus:outline-none resize-none leading-relaxed"
-                  spellCheck={false}
-                />
-              </div>
-            ) : (
-              <div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/30 to-slate-900/40 p-6 space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                  <Brain className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-black text-white">Intellektual Konsept Tahlili</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Ushbu bosqichda to‘g‘ri mantiqiy xulosaga kelish orqali sunʼiy intellekt va kiberxavfsizlik prinsiplarini o‘zlashtirasiz.
-                </p>
-              </div>
-            )}
-
-            {/* Terminal Live Output */}
-            {terminalOutput && (
-              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner whitespace-pre-wrap">
-                <div className="flex items-center gap-2 text-slate-500 text-[10px] pb-2 border-b border-slate-800 mb-2 uppercase tracking-wider">
-                  <Terminal className="w-3.5 h-3.5" />
-                  <span>Chiqish Oynasi (Console Output)</span>
-                </div>
-                {terminalOutput}
-              </div>
-            )}
-
-            {/* Level Reward Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-tr from-amber-500/10 via-purple-500/10 to-blue-500/10 border border-amber-500/30 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-500 font-black text-sm">
-                  <Trophy className="w-4 h-4" />
-                  <span>Bosqich Mukofotlari:</span>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-400">
-                  {completedLevelIds.includes(currentLevel.id) ? '✅ Olingan' : '⏳ Kutilmoqda'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <Zap className="w-4 h-4 text-sky-500 mx-auto mb-1" />
-                  <div className="text-base font-black text-slate-900 dark:text-white">
-                    +{currentLevel.rewardPoints}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold">Ball</div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <Coins className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-                  <div className="text-base font-black text-slate-900 dark:text-white">
-                    +{currentLevel.rewardCoins}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold">Coins</div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <Star className="w-4 h-4 text-purple-500 mx-auto mb-1" />
-                  <div className="text-base font-black text-slate-900 dark:text-white">
-                    +{currentLevel.rewardStars}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold">Yulduz ⭐</div>
+              {/* Live Leaderboard Podium as described in diagram: "yakunlaganda o'rinlar ko'rsatiladi" */}
+              <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>Jonli Natijalar va O'rinlar (Leaderboard):</span>
+                </h4>
+                <div className="space-y-2">
+                  {currentRoom.participants
+                    .slice()
+                    .sort((a, b) => b.score - a.score)
+                    .map((p, idx) => (
+                      <div
+                        key={p.userId}
+                        className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold ${
+                          idx === 0
+                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                            : idx === 1
+                            ? 'bg-slate-800/80 border-slate-700 text-slate-200'
+                            : 'bg-slate-900 border-slate-800 text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono font-black text-sm w-6">
+                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                          </span>
+                          <span>{p.avatarEmoji || '🎓'}</span>
+                          <span>{p.userName}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-slate-400 font-mono">✅ {p.correctCount} ta to'g'ri</span>
+                          <span className="text-amber-400 font-black font-mono">+{p.score} Ball</span>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* MODE 2: 60-SONIYALI BLITS POYGA */}
-      {activeMode === 'blitz' && (
-        <div className="p-8 rounded-3xl bg-slate-900 border border-amber-500/40 shadow-2xl text-center space-y-6 max-w-2xl mx-auto">
-          <div className="w-20 h-20 rounded-3xl bg-amber-500/20 border-2 border-amber-400/50 flex items-center justify-center text-amber-400 mx-auto shadow-[0_0_50px_rgba(245,158,11,0.3)] animate-pulse">
-            <Flame className="w-10 h-10" />
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-black text-white">
-            60-Soniyali Raqamli Blits Sinov
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300">
-            Vaqt tugashidan oldin qancha ko‘p to‘g‘ri javob bersangiz, shuncha ko‘p bonus ball va tangalarga ega bo‘lasiz!
-          </p>
-
-          <div className="flex items-center justify-center gap-6">
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-              <div className="text-[10px] text-slate-400 font-mono">Qolgan Vaqt:</div>
-              <div className="text-3xl font-black font-mono text-amber-400">
-                {blitzTimer}s
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-              <div className="text-[10px] text-slate-400 font-mono">To‘plangan Ball:</div>
-              <div className="text-3xl font-black font-mono text-emerald-400">
-                +{blitzScore * 10}
-              </div>
+      {/* ======================================================== */}
+      {/* 2. TEACHER MODE: CREATE QUIZ ROOM & MANAGE PARTICIPANTS  */}
+      {/* ======================================================== */}
+      {activeMode === 'teacher' && !currentRoom && (
+        <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <GraduationCap className="w-6 h-6 text-purple-400" />
+                <span>Ustoz Rejimi: Yangi Jonli Quiz Xonasi Ochish</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                O'quvchilaringiz uchun alohida 6 xonali kod bilan xona yarating, savollarni belgilang va jonli bellashuv o'tkazing.
+              </p>
             </div>
           </div>
 
-          {blitzTimer > 0 ? (
-            <div className="space-y-4 pt-4 border-t border-slate-800">
-              <div className="text-sm font-bold text-white">
-                "Dasturlashda xatoliklarni topish va tuzatish jarayoni qanday ataladi?"
-              </div>
-              <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
-                {['Refactoring', 'Debugging', 'Compiling', 'Rendering'].map((ans, aIdx) => (
-                  <button
-                    key={ans}
-                    type="button"
-                    onClick={() => {
-                      if (aIdx === 1) {
-                        setBlitzScore((s) => s + 1);
-                        playKitestSound('success', soundEnabled);
-                      } else {
-                        playKitestSound('warning', soundEnabled);
-                      }
-                    }}
-                    className="p-3 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-white font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    {ans}
-                  </button>
-                ))}
+          {!isTeacherAuthorized ? (
+            <div className="p-6 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-center space-y-3">
+              <Lock className="w-10 h-10 text-amber-400 mx-auto" />
+              <h3 className="text-base font-black text-white">Ustozlik Huquqi Talab Qilinadi</h3>
+              <p className="text-xs text-slate-300 max-w-md mx-auto">
+                Raqamli Ustoz jonli xonasini ochish uchun sizda <strong>1000 ball</strong> bo'lishi yoki bosh admin ruxsat berishi kerak.
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleRequestHostPermission}
+                  disabled={requestSent}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {requestSent ? "✅ So'rov Adminga Yuborildi" : "📩 Adminga Ruxsat So'rovi Yuborish"}
+                </button>
               </div>
             </div>
           ) : (
-            <div className="p-6 rounded-2xl bg-emerald-950/60 border border-emerald-500 text-emerald-200 text-sm font-black space-y-3">
-              <div>🏆 Blits Yakunlandi! Siz {blitzScore} ta to‘g‘ri javob berdingiz va +{blitzScore * 10} Ball yutib oldingiz!</div>
-              <button
-                type="button"
-                onClick={() => {
-                  setBlitzTimer(60);
-                  setBlitzScore(0);
-                  setIsBlitzRunning(true);
-                }}
-                className="py-2.5 px-6 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg"
-              >
-                Qayta O‘ynash
-              </button>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Bellashuv Nomi</label>
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Masalan: 7-Sinf Matematika CHSB Jonli Bellashuv"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Fan / Yo'nalish</label>
+                  <select
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-purple-500 focus:outline-none"
+                  >
+                    <option value="Matematika">Matematika</option>
+                    <option value="Informatika">Informatika & Dasturlash</option>
+                    <option value="Fizika">Fizika</option>
+                    <option value="Kimyo">Kimyo</option>
+                    <option value="Biologiya">Biologiya</option>
+                    <option value="Ingliz tili">Ingliz tili</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleCreateRoom}
+                  disabled={isCreatingRoom}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-xl shadow-purple-600/30 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isCreatingRoom ? "Xona Ochilmoqda..." : "🚀 Yangi Quiz Xonasi Yaratish (6-Xonali Kod Olish)"}
+                </button>
+              </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ACTIVE PUBLIC ROOMS LIST                                 */}
+      {/* ======================================================== */}
+      {!currentRoom && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-black text-white flex items-center gap-2">
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>Faol Jonli Quiz Xonalari ({rooms.length} ta):</span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rooms.map((room) => (
+              <div
+                key={room.roomCode}
+                className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between gap-4 transition-all"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-400 font-mono font-bold text-xs">
+                      PIN: {room.roomCode}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      {room.isStarted ? "Bellashuv Ketmoqda" : "Kutilmoqda"}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-black text-white">{room.title}</h4>
+                  <div className="text-xs text-slate-400 mt-1">Ustoz: {room.hostName}</div>
+                  <div className="text-xs text-slate-400">Fan: {room.subject} • {room.cards.length} ta savol</div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                  <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <span>{room.participants.length} ishtirokchi</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleJoinWithCode(room.roomCode)}
+                    className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs transition-all cursor-pointer"
+                  >
+                    Qo'shilish 🚀
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

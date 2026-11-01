@@ -27,7 +27,8 @@ import { FlyingKitesAndEmotionsOverlay } from './components/FlyingKitesAndEmotio
 import { MajlisView } from './components/MajlisView';
 import { InteractiveTutorialModal } from './components/InteractiveTutorialModal';
 import { PremiumModal } from './components/PremiumModal';
-import { KiteshotGameView } from './components/KiteshotGameView';
+import { CodeStudioView } from './components/CodeStudioView';
+import { FloatingScoreRewardOverlay } from './components/FloatingScoreRewardOverlay';
 import {
   GiantImageShowcaseModal,
   ShowcaseImageItem,
@@ -130,6 +131,7 @@ import {
   Gamepad2,
   Image as ImageIcon,
   ShoppingBag,
+  Code2,
 } from 'lucide-react';
 
 const AUTH_STORAGE_KEY = 'kitest_clean_user_v3';
@@ -1245,18 +1247,18 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateTab('gameball')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-between transition-all ${
-                      currentTab === 'gameball' && !selectedTest
-                        ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white shadow-lg shadow-pink-500/25 ring-1 ring-pink-400'
-                        : 'text-pink-300 hover:text-white bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/25'
+                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-between transition-all cursor-pointer ${
+                      (currentTab === 'gameball' || currentTab === 'code_arena') && !selectedTest
+                        ? 'bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-sky-500/25 ring-1 ring-sky-400'
+                        : 'text-sky-300 hover:text-white bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25'
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <Gamepad2 className="w-4 h-4 text-pink-400" />
-                      <span>🎮 Kiteshot (Gameball 3D)</span>
+                      <Code2 className="w-4 h-4 text-sky-400" />
+                      <span>💻 Kod Yozish & IDE</span>
                     </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-pink-500/30 text-pink-200">
-                      ONLAYN
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-sky-500/30 text-sky-200">
+                      PYTHON/C++
                     </span>
                   </button>
 
@@ -2058,16 +2060,24 @@ export default function App() {
                         onOpenMajlis={() => navigateTab('majlis')}
                       />
                     ) : currentTab === 'gameball' ? (
-                      <KiteshotGameView
+                      <CodeStudioView
                         currentUser={currentUser}
-                        users={users}
                         soundEnabled={soundEnabled}
-                        onUpdateUser={(updated) => {
-                          setCurrentUser(updated);
-                          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
-                        }}
                         onRequireLogin={() => openDedicatedAuthPage('login')}
-                        onOpenPremium={() => setIsPremiumModalOpen(true)}
+                        onUpdateScore={(points, coins) => {
+                          if (currentUser) {
+                            const updated = {
+                              ...currentUser,
+                              totalScore: (currentUser.totalScore || 0) + points,
+                              rating: (currentUser.rating || 0) + points,
+                              coins: (currentUser.coins || 0) + coins,
+                            };
+                            setCurrentUser(updated);
+                            try {
+                              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+                            } catch {}
+                          }
+                        }}
                       />
                     ) : currentTab === 'shop' ? (
                       <StoreShopView
@@ -2443,6 +2453,9 @@ export default function App() {
           else navigateTab('home');
         }}
       />
+
+      {/* Floating Animated Score / Coins / Stars Reward Celebration Badge */}
+      <FloatingScoreRewardOverlay soundEnabled={soundEnabled} />
 
       {/* Emotsiyalar va Varraklar (Faqat harakat yoki so'z ustiga kelganda paydo bo'ladi) */}
       <FlyingKitesAndEmotionsOverlay

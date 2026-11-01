@@ -93,6 +93,7 @@ type AdminSectionTab =
   | 'wallet_grants'
   | 'announcements'
   | 'digital_game'
+  | 'media_management'
   | 'monitor'
   | 'certificates'
   | 'creators'
@@ -125,6 +126,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [liveOnlineUsers, setLiveOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const [majlisParticipantCount, setMajlisParticipantCount] = useState<number>(0);
 
+  // Platform Media & Video Management State ("Admin panelga video va rasmlarni almashtirish qo'sh")
+  const [adminEntranceVideoUrl, setAdminEntranceVideoUrl] = useState<string>('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const [adminBannerImageUrl, setAdminBannerImageUrl] = useState<string>('/public/assets/aistudio/Document_18_1_d651c584.jpg');
+  const [adminBrandingLogoUrl, setAdminBrandingLogoUrl] = useState<string>('');
+  const [adminYoutubeChannelUrl, setAdminYoutubeChannelUrl] = useState<string>(OFFICIAL_YOUTUBE_URL);
+  const [mediaSaveStatus, setMediaSaveStatus] = useState<string | null>(null);
+  const [isSavingMedia, setIsSavingMedia] = useState<boolean>(false);
+
   // Edit Test Modal State
   const [editingTest, setEditingTest] = useState<TestItem | null>(null);
   const [editTestTitle, setEditTestTitle] = useState('');
@@ -144,6 +153,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     canModerateChat: false,
     canUploadCourses: false,
     canTakeScreenshots: false,
+    canHostDigitalMentor: false,
+    canEditPlatformMedia: false,
   });
 
   // Create New User in Admin Panel state
@@ -247,7 +258,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   useEffect(() => {
     fetchCloudStatus();
+    fetch('/api/admin/media-config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success) {
+          if (data.entranceVideoUrl) setAdminEntranceVideoUrl(data.entranceVideoUrl);
+          if (data.bannerImageUrl) setAdminBannerImageUrl(data.bannerImageUrl);
+          if (data.brandingLogoUrl) setAdminBrandingLogoUrl(data.brandingLogoUrl);
+          if (data.youtubeChannelUrl) setAdminYoutubeChannelUrl(data.youtubeChannelUrl);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleSaveMediaConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingMedia(true);
+    setMediaSaveStatus(null);
+    try {
+      const res = await fetch('/api/admin/media-config', {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          entranceVideoUrl: adminEntranceVideoUrl.trim(),
+          bannerImageUrl: adminBannerImageUrl.trim(),
+          brandingLogoUrl: adminBrandingLogoUrl.trim(),
+          youtubeChannelUrl: adminYoutubeChannelUrl.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMediaSaveStatus('✅ Platforma boshqaruv videosi va rasmlari muvaffaqiyatli saqlandi!');
+      } else {
+        setMediaSaveStatus(`❌ Xatolik: ${data.error || 'Saqlashda xatolik'}`);
+      }
+    } catch (err: any) {
+      setMediaSaveStatus(`❌ Tarmoq xatosi: ${err.message}`);
+    } finally {
+      setIsSavingMedia(false);
+    }
+  };
 
   const handleSyncToCloud = async () => {
     setIsSyncingCloud(true);
@@ -761,6 +811,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       canModerateChat: u.permissions?.canModerateChat ?? (u.role === 'admin'),
       canUploadCourses: u.permissions?.canUploadCourses ?? (u.role === 'admin' || u.role === 'creator'),
       canTakeScreenshots: u.permissions?.canTakeScreenshots ?? Boolean(u.screenshotAllowed),
+      canHostDigitalMentor: u.permissions?.canHostDigitalMentor ?? (u.role === 'admin' || u.role === 'creator' || (u.totalScore || 0) >= 1000),
+      canEditPlatformMedia: u.permissions?.canEditPlatformMedia ?? (u.role === 'admin'),
     });
   };
 
@@ -1573,6 +1625,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <GraduationCap className="w-4 h-4 text-orange-400" />
           <span>🧑‍🏫 Raqamli Ustoz Nazorati</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('media_management')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            activeSection === 'media_management'
+              ? 'bg-gradient-to-r from-rose-500 via-pink-600 to-indigo-600 text-white shadow-lg shadow-rose-500/30 ring-1 ring-rose-300'
+              : 'bg-slate-900 text-rose-300 hover:text-white border border-rose-500/40'
+          }`}
+        >
+          <Video className="w-4 h-4 text-rose-400" />
+          <span>🎬 Video & Rasmlarni Almashtirish</span>
         </button>
 
         <button
@@ -2693,6 +2757,256 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SECTION: MEDIA & VIDEO MANAGEMENT ("video va rasmlarni almashtirish") */}
+      {/* ========================================================= */}
+      {activeSection === 'media_management' && (
+        <div className="space-y-6">
+          <form
+            onSubmit={handleSaveMediaConfig}
+            className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/40 border-2 border-rose-500/50 space-y-6 shadow-2xl"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-black uppercase tracking-wider mb-2">
+                  <Video className="w-3.5 h-3.5" />
+                  <span>🎬 PLATFORMA MEDIA VA BRENDING BOSHQARUVI</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Video va Rasmlarni Real-Vaqtda Almashtirish
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                  Bosh sahifadagi kirish videosi, brending bannerlari, platforma emblemasi va YouTube havolasini ushbu joydan to'g'ridan-to'g'ri o'zgartiring.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingMedia}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-rose-600/30 cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingMedia ? 'Saqlanmoqda...' : '💾 Barcha Media O‘zgarishlarni Saqlash'}</span>
+              </button>
+            </div>
+
+            {mediaSaveStatus && (
+              <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-xs font-bold text-emerald-200 flex items-center justify-between">
+                <span>{mediaSaveStatus}</span>
+                <button
+                  type="button"
+                  onClick={() => setMediaSaveStatus(null)}
+                  className="text-emerald-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Card 1: Entrance Video URL */}
+              <div className="p-5 rounded-2xl bg-slate-950 border border-rose-500/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-300 font-extrabold text-sm">
+                    <Video className="w-4 h-4" />
+                    <span>1. Bosh Kirish Videosi (YouTube / MP4)</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    Live Stream / Dars
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Video Havolasi (URL)
+                  </label>
+                  <input
+                    type="url"
+                    value={adminEntranceVideoUrl}
+                    onChange={(e) => setAdminEntranceVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminEntranceVideoUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-slate-300 cursor-pointer"
+                  >
+                    Demo Video
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminEntranceVideoUrl('https://www.youtube.com/@FC_UZB-67b')}
+                    className="px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900/60 border border-rose-500/30 text-[10px] font-mono text-rose-300 cursor-pointer"
+                  >
+                    @FC_UZB-67b Rasmiy
+                  </button>
+                </div>
+
+                <div className="rounded-xl overflow-hidden bg-slate-900 border border-slate-800 p-2 text-center text-xs text-slate-400 aspect-video flex items-center justify-center">
+                  {adminEntranceVideoUrl ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-rose-400 space-y-1">
+                      <Play className="w-8 h-8 fill-rose-500/20 text-rose-400" />
+                      <span className="text-[11px] font-mono text-slate-300 truncate max-w-xs px-2">
+                        {adminEntranceVideoUrl}
+                      </span>
+                    </div>
+                  ) : (
+                    <span>Video havolasi kiritilmagan</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 2: Banner Image URL */}
+              <div className="p-5 rounded-2xl bg-slate-950 border border-sky-500/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sky-300 font-extrabold text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    <span>2. Bosh Sahifa Asosiy Banner Rasmi</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    Olimpiada / CHSB
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Banner Rasm Havolasi (URL yoki Local Path)
+                  </label>
+                  <input
+                    type="text"
+                    value={adminBannerImageUrl}
+                    onChange={(e) => setAdminBannerImageUrl(e.target.value)}
+                    placeholder="/public/assets/aistudio/Document_18_1_d651c584.jpg"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-sky-400"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_1_d651c584.jpg')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
+                  >
+                    1-Hujjat (Qo'lyozma)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_2_0b71b289.jpg')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
+                  >
+                    2-Hujjat (Sxema)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_3_2dc70583.jpg')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
+                  >
+                    3-Hujjat (Quiz/IDE)
+                  </button>
+                </div>
+
+                <div className="rounded-xl overflow-hidden bg-slate-900 border border-slate-800 h-40 flex items-center justify-center p-2">
+                  {adminBannerImageUrl ? (
+                    <img
+                      src={adminBannerImageUrl}
+                      alt="Banner Preview"
+                      className="max-h-full max-w-full rounded-lg object-contain shadow-md"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-500">Rasm tanlanmagan</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 3: Branding Emblem / Logo */}
+              <div className="p-5 rounded-2xl bg-slate-950 border border-amber-500/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-300 font-extrabold text-sm">
+                    <Crown className="w-4 h-4" />
+                    <span>3. Platforma Brend Emblemasi / Logotipi</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    PNG / SVG / URL
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Logotip URL (Bo'sh qoldirilsa asl KIDTEST logotipi ishlatiladi)
+                  </label>
+                  <input
+                    type="text"
+                    value={adminBrandingLogoUrl}
+                    onChange={(e) => setAdminBrandingLogoUrl(e.target.value)}
+                    placeholder="https://... yoki bo'sh"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 pt-2">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-amber-400 flex items-center justify-center p-2 shadow-lg shrink-0">
+                    <img
+                      src={adminBrandingLogoUrl || KIDTEST_LOGO_DATA_URL}
+                      alt="Logo Preview"
+                      className="w-full h-full object-contain rounded-xl"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    Ushbu logo barcha sahifalarda, baraban markazida va sertifikatlarda namoyon bo'ladi.
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Official YouTube Channel */}
+              <div className="p-5 rounded-2xl bg-slate-950 border border-rose-500/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-400 font-extrabold text-sm">
+                    <Youtube className="w-4 h-4" />
+                    <span>4. Rasmiy YouTube Kanali Havolasi</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    @FC_UZB-67b
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    YouTube Kanal Havolasi
+                  </label>
+                  <input
+                    type="url"
+                    value={adminYoutubeChannelUrl}
+                    onChange={(e) => setAdminYoutubeChannelUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/@FC_UZB-67b"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-rose-400"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <a
+                    href={adminYoutubeChannelUrl || OFFICIAL_YOUTUBE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600/25 hover:bg-rose-600/40 border border-rose-500/40 text-xs font-bold text-rose-200 transition-all"
+                  >
+                    <Youtube className="w-4 h-4 text-rose-400" />
+                    <span>Kanalni Ochish va Tekshirish</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       )}
 
@@ -4240,7 +4554,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="text-xs font-extrabold text-indigo-300">
                 🛡️ Foydalanuvchi Huquqlari (Ruxsatnomalar):
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
                 <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
                   <input
                     type="checkbox"
@@ -4252,7 +4566,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       }))
                     }
                   />
-                  <span>✨ AI va Oddiy Test Yaratish</span>
+                  <span>✨ Test Yaratish</span>
+                </label>
+                <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editUserPermissions.canHostDigitalMentor)}
+                    onChange={(e) =>
+                      setEditUserPermissions((p) => ({
+                        ...p,
+                        canHostDigitalMentor: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>🧑‍🏫 Raqamli Ustoz Xonasi Ochish</span>
                 </label>
                 <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
                   <input
@@ -4292,6 +4619,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     }
                   />
                   <span>🎬 Video Dars Yuklash</span>
+                </label>
+                <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editUserPermissions.canEditPlatformMedia)}
+                    onChange={(e) =>
+                      setEditUserPermissions((p) => ({
+                        ...p,
+                        canEditPlatformMedia: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>🖼️ Video & Rasmlarni Boshqarish</span>
+                </label>
+                <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editUserPermissions.canTakeScreenshots)}
+                    onChange={(e) =>
+                      setEditUserPermissions((p) => ({
+                        ...p,
+                        canTakeScreenshots: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>📸 Skrinshot Olishga Ruxsat</span>
                 </label>
               </div>
             </div>

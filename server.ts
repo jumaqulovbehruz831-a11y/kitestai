@@ -108,6 +108,10 @@ export interface StoredChatGroup {
 
 export interface StoredSecurityConfig {
   screenshotProtectionEnabled: boolean;
+  entranceVideoUrl?: string;
+  bannerImageUrl?: string;
+  brandingLogoUrl?: string;
+  youtubeChannelUrl?: string;
   updatedAt?: string;
 }
 
@@ -3465,6 +3469,253 @@ app.post("/api/digital-mentor/complete-step", (req, res) => {
 });
 
 // ==========================================
+// RAQAMLI USTOZ JONLI MULTIPLAYER QUIZ XONALARI (QUIZIZZ & DISCORD USLUBIDA)
+// ==========================================
+export interface LiveQuizCard {
+  id: string;
+  title: string;
+  imageEmoji: string;
+  imageUrl?: string;
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  points: number;
+  explanation: string;
+}
+
+export interface LiveQuizParticipant {
+  userId: string;
+  userName: string;
+  avatarEmoji?: string;
+  score: number;
+  correctCount: number;
+  answeredCardIds: string[];
+}
+
+export interface LiveQuizRoom {
+  roomCode: string;
+  title: string;
+  subject: string;
+  hostId: string;
+  hostName: string;
+  isStarted: boolean;
+  isFinished: boolean;
+  createdAt: string;
+  cards: LiveQuizCard[];
+  participants: LiveQuizParticipant[];
+}
+
+let liveQuizRooms: LiveQuizRoom[] = [
+  {
+    roomCode: "749201",
+    title: "Respublika CHSB & Matematika Jonli Quiz Bellashuvi",
+    subject: "Matematika va Mantiq",
+    hostId: "admin",
+    hostName: "Behruz Jumaqulov (Bosh Admin)",
+    isStarted: false,
+    isFinished: false,
+    createdAt: new Date().toISOString(),
+    participants: [],
+    cards: [
+      {
+        id: "card_1",
+        title: "1. Kvadrat Tenglama",
+        imageEmoji: "📐",
+        question: "x² - 5x + 6 = 0 tenglamaning ildizlari yig'indisi nechiga teng?",
+        options: ["-5", "5", "6", "-6"],
+        correctOptionIndex: 1,
+        points: 10,
+        explanation: "Vyet teoremasiga ko'ra: x1 + x2 = -(-5)/1 = 5.",
+      },
+      {
+        id: "card_2",
+        title: "2. Geometriya Uchburchak",
+        imageEmoji: "📏",
+        question: "Gipotenuza 10 sm, bir katet 6 sm bo'lsa, ikkinchi katet necha sm?",
+        options: ["7", "8", "9", "6.5"],
+        correctOptionIndex: 1,
+        points: 10,
+        explanation: "Pifagor teoremasi: b = √(10² - 6²) = √(100 - 36) = √64 = 8 sm.",
+      },
+      {
+        id: "card_3",
+        title: "3. Dasturlash va Algoritm",
+        imageEmoji: "💻",
+        question: "Python tilida massiv/ro'yxat uzunligini aniqlovchi funksiya qaysi?",
+        options: ["length()", "size()", "len()", "count()"],
+        correctOptionIndex: 2,
+        points: 10,
+        explanation: "Python da ro'yxatlar uchun standart len() o'rnatilgan funksiyasi ishlatiladi.",
+      },
+      {
+        id: "card_4",
+        title: "4. Mantiqiy Savol",
+        imageEmoji: "💡",
+        question: "1 dan 100 gacha bo'lgan barcha butun sonlar yig'indisi nechiga teng?",
+        options: ["5000", "5050", "5100", "4950"],
+        correctOptionIndex: 1,
+        points: 15,
+        explanation: "Gauss formulasi: S = n*(n+1)/2 = 100*101/2 = 5050.",
+      },
+    ],
+  },
+];
+
+app.get("/api/digital-mentor/quiz-rooms", (_req, res) => {
+  res.json({ success: true, rooms: liveQuizRooms });
+});
+
+app.post("/api/digital-mentor/quiz-rooms/create", (req, res) => {
+  const { title, subject, hostId, hostName, cards } = req.body || {};
+  if (!title || !hostId) {
+    return res.status(400).json({ error: "Sarlavha va ustoz ma'lumotlarini kiriting!" });
+  }
+
+  // 6-digit random code
+  let newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  while (liveQuizRooms.some((r) => r.roomCode === newCode)) {
+    newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  const defaultCards: LiveQuizCard[] = [
+    {
+      id: "card_1",
+      title: "1. Boshlang'ich Savol",
+      imageEmoji: "🎯",
+      question: "2 ning 10-darajasi nechiga teng?",
+      options: ["512", "1024", "2048", "256"],
+      correctOptionIndex: 1,
+      points: 10,
+      explanation: "2¹⁰ = 1024.",
+    },
+    {
+      id: "card_2",
+      title: "2. Mantiq va Fan",
+      imageEmoji: "⚡",
+      question: "Yorug'lik tezligi vakuumda taxminan qanchaga teng?",
+      options: ["300 000 km/s", "150 000 km/s", "30 000 km/s", "3 000 000 km/s"],
+      correctOptionIndex: 0,
+      points: 10,
+      explanation: "c ≈ 300 000 km/s (3×10⁸ m/s).",
+    },
+  ];
+
+  const newRoom: LiveQuizRoom = {
+    roomCode: newCode,
+    title: String(title).trim(),
+    subject: subject ? String(subject).trim() : "Umumiy Fanlar",
+    hostId: String(hostId),
+    hostName: hostName ? String(hostName).trim() : "Ustoz",
+    isStarted: false,
+    isFinished: false,
+    createdAt: new Date().toISOString(),
+    participants: [],
+    cards: Array.isArray(cards) && cards.length > 0 ? cards : defaultCards,
+  };
+
+  liveQuizRooms.unshift(newRoom);
+  broadcastWs({ type: "quiz:room_created", room: newRoom });
+
+  res.status(201).json({ success: true, room: newRoom });
+});
+
+app.post("/api/digital-mentor/quiz-rooms/join", (req, res) => {
+  const { roomCode, userId, userName, avatarEmoji } = req.body || {};
+  const cleanCode = String(roomCode || "").trim();
+  const room = liveQuizRooms.find((r) => r.roomCode === cleanCode);
+  if (!room) {
+    return res.status(404).json({ error: "Bunday kodli Quiz xonasi topilmadi! Kodni tekshiring." });
+  }
+
+  if (!room.participants.some((p) => p.userId === userId)) {
+    room.participants.push({
+      userId: String(userId),
+      userName: String(userName || "O'quvchi"),
+      avatarEmoji: avatarEmoji || "🎓",
+      score: 0,
+      correctCount: 0,
+      answeredCardIds: [],
+    });
+  }
+
+  broadcastWs({ type: "quiz:participant_joined", room });
+  res.json({ success: true, room });
+});
+
+app.post("/api/digital-mentor/quiz-rooms/start", (req, res) => {
+  const { roomCode, hostId } = req.body || {};
+  const room = liveQuizRooms.find((r) => r.roomCode === String(roomCode));
+  if (!room) return res.status(404).json({ error: "Xona topilmadi" });
+  if (room.hostId !== hostId && hostId !== "admin") {
+    return res.status(403).json({ error: "Faqat xona ustozi o'yinni boshlay oladi!" });
+  }
+
+  room.isStarted = true;
+  broadcastWs({ type: "quiz:started", room });
+  res.json({ success: true, room });
+});
+
+app.post("/api/digital-mentor/quiz-rooms/answer", (req, res) => {
+  const { roomCode, userId, cardId, selectedOptionIndex } = req.body || {};
+  const room = liveQuizRooms.find((r) => r.roomCode === String(roomCode));
+  if (!room) return res.status(404).json({ error: "Xona topilmadi" });
+
+  const card = room.cards.find((c) => c.id === cardId);
+  if (!card) return res.status(404).json({ error: "Savol kartochkasi topilmadi" });
+
+  let participant = room.participants.find((p) => p.userId === userId);
+  if (!participant) {
+    participant = {
+      userId,
+      userName: "O'quvchi",
+      score: 0,
+      correctCount: 0,
+      answeredCardIds: [],
+    };
+    room.participants.push(participant);
+  }
+
+  const isCorrect = selectedOptionIndex === card.correctOptionIndex;
+  if (!participant.answeredCardIds.includes(cardId)) {
+    participant.answeredCardIds.push(cardId);
+    if (isCorrect) {
+      participant.score += card.points;
+      participant.correctCount += 1;
+
+      // Also award user profile
+      const user = db.users.find((u) => u.id === userId);
+      if (user) {
+        user.totalScore = (user.totalScore || 0) + card.points;
+        user.rating = (user.rating || 0) + card.points;
+        user.coins = (user.coins || 0) + 5;
+        saveDb();
+      }
+    }
+  }
+
+  broadcastWs({ type: "quiz:answered", room, userId, isCorrect });
+  res.json({
+    success: true,
+    isCorrect,
+    correctOptionIndex: card.correctOptionIndex,
+    explanation: card.explanation,
+    earnedPoints: isCorrect ? card.points : 0,
+    room,
+  });
+});
+
+app.post("/api/digital-mentor/request-host-permission", (req, res) => {
+  const { userId, userName } = req.body || {};
+  createPlatformNotification({
+    title: "👨‍🏫 Ustozlik Huquqi So'rovi",
+    text: `${userName || "Foydalanuvchi"} (ID: ${userId}) Raqamli Ustoz Jonli Quiz xonasini ochish uchun ruxsat so'radi.`,
+    icon: "👨‍🏫",
+    tab: "admin",
+  });
+  res.json({ success: true, message: "So'rov bosh adminga yuborildi! Tez orada tasdiqlanadi." });
+});
+
+// ==========================================
 // REAL-TIME ONLINE CHAT ENDPOINTS
 // ==========================================
 
@@ -3906,6 +4157,59 @@ app.post("/api/auth/register", (req, res) => {
     success: true,
     user: sanitizeUser(newUser),
     users: allSanitized,
+  });
+});
+
+// 1-Click Fast-Track Guest Sign-up / Sign-in ("ro'yxatdan o'tish yengillansin")
+app.post("/api/auth/quick-guest", (req, res) => {
+  const { name = "Zukko O'quvchi", region = "Toshkent shahri" } = req.body || {};
+  const randNum = Math.floor(1000 + Math.random() * 9000);
+  const cleanName = String(name).trim() || `O'quvchi_${randNum}`;
+  const username = `zukko_${randNum}`;
+  const email = `${username}@kitest.uz`;
+
+  const newUser: StoredUser = {
+    id: `usr_guest_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    name: cleanName,
+    username,
+    email,
+    password: "guest_password",
+    role: "user",
+    rating: 25,
+    ratingTitle: computeRatingTitle(25),
+    rank: db.users.length + 1,
+    solvedCount: 0,
+    submissionsCount: 0,
+    totalScore: 25,
+    coins: 30,
+    stars: 1,
+    starColor: "blue",
+    starRankTitle: "Noob",
+    scoreMultiplier: 1,
+    bio: "Tezkor 1-bosqichli kirish orqali qo'shildi",
+    region: String(region).trim(),
+    district: "Markaziy tuman",
+    institution: "KITEST Akademiyasi",
+    avatarUrl: "",
+    followersUserIds: [],
+    followingUserIds: [],
+    purchasedCertificates: [],
+    createdAt: new Date().toISOString(),
+    isBanned: false,
+  };
+
+  db.users.push(newUser);
+  recalculateRanksAndRoles();
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+
+  res.status(201).json({
+    success: true,
+    user: sanitizeUser(newUser),
+    users: allSanitized,
+    message: `🎉 Xush kelibsiz, ${cleanName}! @${username} hisobingiz 1 soniyada tayyor bo'ldi.`
   });
 });
 
@@ -5887,6 +6191,60 @@ app.post("/api/admin/security/toggle-screenshot", (req, res) => {
     message: db.securityConfig.screenshotProtectionEnabled
       ? "🛡️ Skrinshot va nusxalashdan himoya YOQILDI!"
       : "🔓 Skrinshot olishga ruxsat BERILDI!",
+  });
+});
+
+// Admin Media & Video Management ("Admin panelga video va rasmlarni almashtirish qo'sh")
+app.get("/api/admin/media-config", (_req, res) => {
+  res.json({
+    success: true,
+    entranceVideoUrl: db.securityConfig.entranceVideoUrl || "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    bannerImageUrl: db.securityConfig.bannerImageUrl || "/public/assets/aistudio/Document_18_1_d651c584.jpg",
+    brandingLogoUrl: db.securityConfig.brandingLogoUrl || "",
+    youtubeChannelUrl: db.securityConfig.youtubeChannelUrl || "https://www.youtube.com/@FC_UZB-67b",
+    screenshotProtectionEnabled: db.securityConfig.screenshotProtectionEnabled,
+    updatedAt: db.securityConfig.updatedAt,
+  });
+});
+
+app.post("/api/admin/media-config", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { entranceVideoUrl, bannerImageUrl, brandingLogoUrl, youtubeChannelUrl } = req.body || {};
+
+  if (entranceVideoUrl !== undefined) {
+    db.securityConfig.entranceVideoUrl = String(entranceVideoUrl).trim();
+  }
+  if (bannerImageUrl !== undefined) {
+    db.securityConfig.bannerImageUrl = String(bannerImageUrl).trim();
+  }
+  if (brandingLogoUrl !== undefined) {
+    db.securityConfig.brandingLogoUrl = String(brandingLogoUrl).trim();
+  }
+  if (youtubeChannelUrl !== undefined) {
+    db.securityConfig.youtubeChannelUrl = String(youtubeChannelUrl).trim();
+  }
+  db.securityConfig.updatedAt = new Date().toISOString();
+  saveDb();
+
+  broadcastWs({
+    type: "admin:media_config_updated",
+    mediaConfig: {
+      entranceVideoUrl: db.securityConfig.entranceVideoUrl,
+      bannerImageUrl: db.securityConfig.bannerImageUrl,
+      brandingLogoUrl: db.securityConfig.brandingLogoUrl,
+      youtubeChannelUrl: db.securityConfig.youtubeChannelUrl,
+    },
+  });
+
+  res.json({
+    success: true,
+    message: "🎬 Boshqaruv videosi va platforma rasmlari muvaffaqiyatli yangilandi va saqlandi!",
+    mediaConfig: {
+      entranceVideoUrl: db.securityConfig.entranceVideoUrl,
+      bannerImageUrl: db.securityConfig.bannerImageUrl,
+      brandingLogoUrl: db.securityConfig.brandingLogoUrl,
+      youtubeChannelUrl: db.securityConfig.youtubeChannelUrl,
+    },
   });
 });
 

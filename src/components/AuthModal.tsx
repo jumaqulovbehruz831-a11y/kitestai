@@ -18,6 +18,8 @@ import {
   Building2,
   ScanFace,
   Check,
+  Zap,
+  Sparkles,
 } from 'lucide-react';
 import { signInWithRealGooglePopup } from '../firebase';
 import { FaceIdScannerModal } from './FaceIdScannerModal';
@@ -126,6 +128,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleAppleMockSignIn = () => {
     setError("Apple ID orqali kirish xizmati tez kunda ishga tushiriladi. Hozircha Google, Face ID yoki Login orqali kiring!");
+  };
+
+  const handleQuickGuestRegister = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/quick-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          region,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined);
+        onClose();
+      } else {
+        setError(data.error || 'Tezkor kirishda xatolik yuz berdi');
+      }
+    } catch {
+      setError("Server bilan bog'lanishda xatolik");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFaceModalVerified = async (
@@ -358,6 +386,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span>{error}</span>
             </motion.div>
           )}
+
+          {/* 1-Click Fast Access Button ("ro'yxatdan o'tish yengillansin") */}
+          <button
+            type="button"
+            onClick={handleQuickGuestRegister}
+            disabled={loading}
+            className="w-full py-3 px-4 mb-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+            <span>⚡ 1-Bosqichli Tezkor Kirish (Parolsiz / 1-soniyada)</span>
+          </button>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-slate-200"></div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Yoki odatiy kirish
+            </span>
+            <div className="flex-1 h-px bg-slate-200"></div>
+          </div>
 
           {/* Form matching oK2Zj.jpg */}
           <form onSubmit={handleSubmit} className="space-y-3.5">

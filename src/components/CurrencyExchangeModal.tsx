@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { User } from '../types';
 import { playKitestSound } from './KitestEmblem';
+import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 import {
   X,
   Zap,
@@ -126,6 +127,11 @@ export const CurrencyExchangeModal: React.FC<CurrencyExchangeModalProps> = ({
 
       if (data.user) {
         onUpdateUser(data.user);
+        triggerScoreReward({
+          type: toCurrency,
+          amount: targetGained,
+          label: toCurrency === 'points' ? 'Ball (Almashuv)' : toCurrency === 'coins' ? 'Tanga (Almashuv)' : 'Yulduz (Almashuv)',
+        });
       }
 
       setSuccessMsg(data.message || "Valyuta muvaffaqiyatli ayirboshlandi!");

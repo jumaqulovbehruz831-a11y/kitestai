@@ -158,6 +158,10 @@ export interface PlatformSecurityConfig {
   gameballCostPoints?: number;
   duelAdminBetPoints?: number;
   promoVideoUrl?: string;
+  entranceVideoUrl?: string;
+  bannerImageUrl?: string;
+  brandingLogoUrl?: string;
+  youtubeChannelUrl?: string;
   updatedAt?: string;
 }
 
@@ -732,6 +736,8 @@ export interface UserPermissions {
   canModerateChat?: boolean;
   canUploadCourses?: boolean;
   canTakeScreenshots?: boolean;
+  canHostDigitalMentor?: boolean;
+  canEditPlatformMedia?: boolean;
 }
 
 export interface OnlinePresenceUser {

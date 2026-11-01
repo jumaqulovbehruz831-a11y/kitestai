@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { KIDTEST_LOGO_DATA_URL, playKitestSound } from './KitestEmblem';
 import { ADMIN_PASSCODE_VALUE } from './AdminAuthModal';
+import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 import {
   X,
   Zap,
@@ -213,6 +214,16 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
           amount: seg.amount,
         });
         playKitestSound('fanfare', soundEnabled);
+
+        if (seg.type === 'points' || points > 0) {
+          triggerScoreReward('points', points || seg.amount || 10, `🎡 ${seg.label || 'Baraban Yutug\'i'}`);
+        } else if (seg.type === 'coins') {
+          triggerScoreReward('coins', seg.amount || 25, `🪙 ${seg.label || 'Tanga Yutug\'i'}`);
+        } else if (seg.type === 'stars') {
+          triggerScoreReward('stars', seg.amount || 5, `⭐ ${seg.label || 'Yulduz Yutug\'i'}`);
+        } else {
+          triggerScoreReward('points', points || 35, `🏅 ${seg.label || 'Maxsus Yutuq'}`);
+        }
 
         if (data.user) {
           onUpdateUser(data.user);
@@ -499,7 +510,34 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
                   </svg>
                 </div>
 
-                <div className="relative w-[310px] h-[310px] sm:w-[370px] sm:h-[370px] rounded-full p-3 bg-gradient-to-tr from-amber-500 via-sky-400 to-amber-300 shadow-[0_0_60px_rgba(56,189,248,0.25)]">
+                <div className="relative w-[320px] h-[320px] sm:w-[390px] sm:h-[390px] rounded-full p-4 bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-600 shadow-[0_0_80px_rgba(245,158,11,0.5),0_0_120px_rgba(56,189,248,0.3)] ring-4 ring-amber-400/80">
+                  {/* 16 Glowing LED Perimeter Bulbs ("baraban hammada oddiy bo'lmasin") */}
+                  <div className="absolute inset-0 rounded-full pointer-events-none">
+                    {[...Array(16)].map((_, i) => {
+                      const angle = (i * 360) / 16;
+                      const rad = (angle * Math.PI) / 180;
+                      const r = 48.5;
+                      const top = 50 + r * Math.sin(rad);
+                      const left = 50 + r * Math.cos(rad);
+                      const isGold = i % 2 === 0;
+                      return (
+                        <div
+                          key={`wheel_led_${i}`}
+                          style={{ top: `${top}%`, left: `${left}%` }}
+                          className={`absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-md ${
+                            isSpinning
+                              ? isGold
+                                ? 'bg-yellow-300 shadow-[0_0_14px_#fde047]'
+                                : 'bg-cyan-300 shadow-[0_0_14px_#67e8f9]'
+                              : isGold
+                              ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+                              : 'bg-emerald-400 shadow-[0_0_8px_#10b981]'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+
                   <div
                     style={{
                       transform: `rotate(${rotationDeg}deg)`,
@@ -507,7 +545,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
                         ? 'transform 4.15s cubic-bezier(0.14, 0.88, 0.18, 1)'
                         : 'none',
                     }}
-                    className="w-full h-full rounded-full overflow-hidden relative shadow-inner bg-slate-950"
+                    className="w-full h-full rounded-full overflow-hidden relative shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] bg-slate-950 border-2 border-slate-900"
                   >
                     <svg viewBox="0 0 360 360" className="w-full h-full">
                       <circle

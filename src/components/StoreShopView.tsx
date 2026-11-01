@@ -6,6 +6,7 @@ import {
   UserPurchasedCertificate,
 } from '../types';
 import { playKitestSound } from './KitestEmblem';
+import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 import {
   ShoppingBag,
   Zap,
@@ -358,6 +359,12 @@ export const StoreShopView: React.FC<StoreShopViewProps> = ({
           origin: { y: 0.6 },
         });
       } catch {}
+
+      if (item.starsGrant) {
+        triggerScoreReward('stars', item.starsGrant, `⭐ ${item.title}`);
+      } else if (item.costPoints) {
+        triggerScoreReward('points', -item.costPoints, `🛍️ Xarid: -${item.costPoints} ball`);
+      }
 
       setSuccessToast(`Tabriklaymiz! "${item.title}" muvaffaqiyatli xarid qilindi! -${item.costPoints} ball ayirildi.`);
       setTimeout(() => setSuccessToast(null), 4500);

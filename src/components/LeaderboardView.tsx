@@ -509,6 +509,90 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             </div>
           </div>
 
+          {/* Top 3 Champions Podium (1st, 2nd, 3rd) */}
+          {sortedUsers.length >= 2 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 border border-slate-800 shadow-xl">
+              {/* 2nd Place */}
+              {sortedUsers[1] && (
+                <div
+                  onClick={() => setInspectedUser(sortedUsers[1])}
+                  className="order-2 md:order-1 p-4 rounded-2xl bg-gradient-to-b from-slate-800/60 to-slate-900 border border-slate-700 text-center flex flex-col items-center justify-between hover:border-slate-500 transition-all cursor-pointer shadow-lg"
+                >
+                  <div className="text-2xl mb-1">🥈</div>
+                  <div className="relative mb-2">
+                    <img
+                      src={sortedUsers[1].avatarUrl || KIDTEST_LOGO_DATA_URL}
+                      alt={sortedUsers[1].name}
+                      className="w-16 h-16 rounded-2xl object-cover bg-slate-950 border-2 border-slate-400 p-0.5 shadow-md"
+                    />
+                    <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-md bg-slate-700 text-[10px] font-black text-slate-200">
+                      #2
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-white truncate max-w-[160px]">{sortedUsers[1].name}</h4>
+                  <p className="text-[11px] text-slate-400 truncate max-w-[160px]">@{sortedUsers[1].username}</p>
+                  <div className="mt-2 text-sm font-black text-slate-300 font-mono">
+                    ⚡ {sortedUsers[1].totalScore} Ball
+                  </div>
+                </div>
+              )}
+
+              {/* 1st Place (Center Champion) */}
+              {sortedUsers[0] && (
+                <div
+                  onClick={() => setInspectedUser(sortedUsers[0])}
+                  className="order-1 md:order-2 p-5 rounded-2xl bg-gradient-to-b from-amber-500/15 via-yellow-950/20 to-slate-900 border-2 border-amber-400/80 text-center flex flex-col items-center justify-between hover:border-amber-300 transition-all cursor-pointer shadow-2xl relative overflow-hidden"
+                >
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[9px] font-black text-amber-300 uppercase tracking-widest">
+                    MUTLAQ CHEMPION
+                  </div>
+                  <div className="text-3xl mb-1 animate-bounce">👑</div>
+                  <div className="relative mb-2">
+                    <img
+                      src={sortedUsers[0].avatarUrl || KIDTEST_LOGO_DATA_URL}
+                      alt={sortedUsers[0].name}
+                      className="w-20 h-20 rounded-2xl object-cover bg-slate-950 border-2 border-amber-400 p-0.5 shadow-xl shadow-amber-500/30 ring-4 ring-amber-500/20"
+                    />
+                    <span className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-md bg-amber-500 text-[11px] font-black text-slate-950 shadow-md">
+                      #1
+                    </span>
+                  </div>
+                  <h4 className="text-base font-black text-white truncate max-w-[190px]">{sortedUsers[0].name}</h4>
+                  <p className="text-xs text-amber-300 truncate max-w-[190px]">@{sortedUsers[0].username}</p>
+                  <div className="mt-2 text-base font-black text-amber-400 font-mono flex items-center justify-center gap-1">
+                    <Zap className="w-4 h-4 fill-amber-400" />
+                    <span>{sortedUsers[0].totalScore} Ball</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3rd Place */}
+              {sortedUsers[2] && (
+                <div
+                  onClick={() => setInspectedUser(sortedUsers[2])}
+                  className="order-3 p-4 rounded-2xl bg-gradient-to-b from-amber-950/20 to-slate-900 border border-amber-700/50 text-center flex flex-col items-center justify-between hover:border-amber-600 transition-all cursor-pointer shadow-lg"
+                >
+                  <div className="text-2xl mb-1">🥉</div>
+                  <div className="relative mb-2">
+                    <img
+                      src={sortedUsers[2].avatarUrl || KIDTEST_LOGO_DATA_URL}
+                      alt={sortedUsers[2].name}
+                      className="w-16 h-16 rounded-2xl object-cover bg-slate-950 border-2 border-amber-700 p-0.5 shadow-md"
+                    />
+                    <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-md bg-amber-800 text-[10px] font-black text-amber-200">
+                      #3
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-white truncate max-w-[160px]">{sortedUsers[2].name}</h4>
+                  <p className="text-[11px] text-slate-400 truncate max-w-[160px]">@{sortedUsers[2].username}</p>
+                  <div className="mt-2 text-sm font-black text-amber-500 font-mono">
+                    ⚡ {sortedUsers[2].totalScore} Ball
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Clean RoboContest-Style Users Data Table */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
             <div className="overflow-x-auto">

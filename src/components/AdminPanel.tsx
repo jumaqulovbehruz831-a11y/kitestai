@@ -14,6 +14,8 @@ import {
   ADMIN_EMAIL,
   OnlinePresenceUser,
   UserPermissions,
+  CodingConfig,
+  MediaItem,
 } from '../types';
 import { ADMIN_PASSCODE_VALUE } from './AdminAuthModal';
 import {
@@ -62,6 +64,10 @@ import {
   Cloud,
   Download,
   Play,
+  Code2,
+  Laptop,
+  Terminal,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { OFFICIAL_YOUTUBE_URL } from '../types';
 import { KIDTEST_LOGO_DATA_URL } from './KitestEmblem';
@@ -91,6 +97,7 @@ interface AdminPanelProps {
 type AdminSectionTab =
   | 'cloud_storage'
   | 'ratings'
+  | 'coding_management'
   | 'wallet_grants'
   | 'announcements'
   | 'digital_game'
@@ -134,6 +141,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [adminYoutubeChannelUrl, setAdminYoutubeChannelUrl] = useState<string>(OFFICIAL_YOUTUBE_URL);
   const [mediaSaveStatus, setMediaSaveStatus] = useState<string | null>(null);
   const [isSavingMedia, setIsSavingMedia] = useState<boolean>(false);
+
+  // Coding Management State ("Kod yozish ball arini hammasini admin boshqaradigan qil")
+  const [codingConfig, setCodingConfig] = useState<CodingConfig>({
+    pythonReward: 5,
+    cppReward: 5,
+    jsReward: 5,
+    htmlReward: 5,
+    olimpiadaReward: 20,
+    dailyMaxScore: 100,
+    awardCoinsBonus: 10,
+    digitalMentorExternalUrl: 'https://sites.google.com/view/kitest-dasturlash',
+  });
+  const [isSavingCodingConfig, setIsSavingCodingConfig] = useState<boolean>(false);
+  const [codingSaveStatus, setCodingSaveStatus] = useState<string | null>(null);
+  const [codingStudentSearch, setCodingStudentSearch] = useState<string>('');
+  const [adjustCodingUser, setAdjustCodingUser] = useState<User | null>(null);
+  const [adjustCodingDelta, setAdjustCodingDelta] = useState<number>(50);
+  const [adjustCodingReason, setAdjustCodingReason] = useState<string>("Dasturlash topshirig'i mukofoti");
+  const [isAdjustingCoding, setIsAdjustingCoding] = useState<boolean>(false);
+
+  // Dynamic Media Gallery State ("video va rasmlarni almashtirish, qo'shish va o'chirish")
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState<boolean>(false);
+  const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
+  const [mediaFormTitle, setMediaFormTitle] = useState<string>('');
+  const [mediaFormType, setMediaFormType] = useState<'video' | 'image'>('video');
+  const [mediaFormUrl, setMediaFormUrl] = useState<string>('');
+  const [mediaFormCategory, setMediaFormCategory] = useState<any>('entrance_video');
+  const [mediaFormDesc, setMediaFormDesc] = useState<string>('');
+  const [isSubmittingMediaForm, setIsSubmittingMediaForm] = useState<boolean>(false);
 
   // Edit Test Modal State
   const [editingTest, setEditingTest] = useState<TestItem | null>(null);
@@ -257,8 +294,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     } catch {}
   };
 
+  const fetchCodingConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/coding-config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.codingConfig) {
+          setCodingConfig(data.codingConfig);
+        }
+      }
+    } catch {}
+  };
+
+  const fetchMediaGallery = async () => {
+    try {
+      const res = await fetch('/api/admin/media');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.mediaItems)) {
+          setMediaItems(data.mediaItems);
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     fetchCloudStatus();
+    fetchCodingConfig();
+    fetchMediaGallery();
     fetch('/api/admin/media-config')
       .then((res) => res.json())
       .then((data) => {
@@ -271,6 +334,114 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       })
       .catch(() => {});
   }, []);
+
+  const handleSaveCodingConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCodingConfig(true);
+    setCodingSaveStatus(null);
+    try {
+      const res = await fetch('/api/admin/coding-config', {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify(codingConfig),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCodingSaveStatus("✅ Kod yozish ballari va qoidalari muvaffaqiyatli saqlandi!");
+        await onRefreshData();
+      } else {
+        setCodingSaveStatus(`❌ Xatolik: ${data.error || "Saqlab bo'lmadi"}`);
+      }
+    } catch (err: any) {
+      setCodingSaveStatus(`❌ Tarmoq xatosi: ${err.message}`);
+    } finally {
+      setIsSavingCodingConfig(false);
+    }
+  };
+
+  const handleAdjustStudentCodingScore = async (userId: string, delta: number, reason?: string) => {
+    setIsBusyAction(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/coding-score`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          deltaCodingScore: delta,
+          reason: reason || adjustCodingReason,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await onRefreshData();
+        setCodingSaveStatus(data.message || `⚡ ${delta > 0 ? `+${delta}` : delta} dasturlash balli muvaffaqiyatli saqlandi!`);
+        setAdjustCodingUser(null);
+      }
+    } catch {}
+    setIsBusyAction(false);
+  };
+
+  const handleSaveMediaItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mediaFormTitle.trim() || !mediaFormUrl.trim()) {
+      alert("Media nomi va havolasini kiriting!");
+      return;
+    }
+    setIsSubmittingMediaForm(true);
+    try {
+      const url = editingMediaId ? `/api/admin/media/${editingMediaId}` : '/api/admin/media';
+      const method = editingMediaId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: adminHeaders,
+        body: JSON.stringify({
+          title: mediaFormTitle.trim(),
+          type: mediaFormType,
+          url: mediaFormUrl.trim(),
+          category: mediaFormCategory,
+          description: mediaFormDesc.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (Array.isArray(data.mediaItems)) setMediaItems(data.mediaItems);
+        setIsAddMediaModalOpen(false);
+        setEditingMediaId(null);
+        setMediaFormTitle('');
+        setMediaFormUrl('');
+        setMediaFormDesc('');
+        setMediaSaveStatus("✅ Media elementi muvaffaqiyatli saqlandi!");
+      }
+    } catch (err: any) {
+      alert("Xatolik: " + err.message);
+    } finally {
+      setIsSubmittingMediaForm(false);
+    }
+  };
+
+  const handleDeleteMediaItem = async (id: string) => {
+    if (!confirm("Ushbu media elementini o'chirmoqchimisiz?")) return;
+    try {
+      const res = await fetch(`/api/admin/media/${id}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.mediaItems)) {
+        setMediaItems(data.mediaItems);
+        setMediaSaveStatus("🗑️ Media elementi muvaffaqiyatli o'chirildi!");
+      }
+    } catch {}
+  };
+
+  const handleOpenEditMedia = (item: MediaItem) => {
+    setEditingMediaId(item.id);
+    setMediaFormTitle(item.title);
+    setMediaFormType(item.type);
+    setMediaFormUrl(item.url);
+    setMediaFormCategory(item.category);
+    setMediaFormDesc(item.description || '');
+    setIsAddMediaModalOpen(true);
+  };
 
   const handleSaveMediaConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1593,6 +1764,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveSection('coding_management')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            activeSection === 'coding_management'
+              ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 text-slate-950 shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-300'
+              : 'bg-slate-900 text-emerald-300 hover:text-white border border-emerald-500/40'
+          }`}
+        >
+          <Code2 className="w-4 h-4 text-emerald-400" />
+          <span>💻 Kod Yozish Ballari Boshqaruvi</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('wallet_grants')}
           className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
             activeSection === 'wallet_grants'
@@ -2486,6 +2669,294 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       )}
 
       {/* ===================================================================== */}
+      {/* SECTION: KOD YOZISH VA DASTURLASH BALLARI BOSHQARUVI                  */}
+      {/* ===================================================================== */}
+      {activeSection === 'coding_management' && (
+        <div className="space-y-6">
+          {/* Coding Configuration Form */}
+          <form
+            onSubmit={handleSaveCodingConfig}
+            className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/50 space-y-6 shadow-2xl"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
+                  <Code2 className="w-3.5 h-3.5" />
+                  <span>💻 DASTURLASH POLIGONI VA KOD BALLARI BOSHQARUVI</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Kod Yozish Ballari va Qoidalarini Boshqarish
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                  O'quvchilar Python, C++, JavaScript va HTML kodlarini yozganda yoki masalalarni yechganda beriladigan ballar va kunlik limitlarni belgilang.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingCodingConfig}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                <Save className="w-4 h-4 fill-slate-950" />
+                <span>{isSavingCodingConfig ? 'Saqlanmoqda...' : '💾 Barcha Kod Ballarini Saqlash'}</span>
+              </button>
+            </div>
+
+            {codingSaveStatus && (
+              <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-xs font-bold text-emerald-200 flex items-center justify-between">
+                <span>{codingSaveStatus}</span>
+                <button
+                  type="button"
+                  onClick={() => setCodingSaveStatus(null)}
+                  className="text-emerald-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2">
+                <label className="block text-xs font-bold text-emerald-300">
+                  🐍 Python Masalasi Balli
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={codingConfig.pythonReward}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, pythonReward: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400">Har bir muvaffaqiyatli kod uchun</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-sky-500/30 space-y-2">
+                <label className="block text-xs font-bold text-sky-300">
+                  ⚙️ C++ Algoritmi Balli
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={codingConfig.cppReward}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, cppReward: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-sky-500"
+                />
+                <span className="text-[10px] text-slate-400">Har bir C++ topshirig'i uchun</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-amber-500/30 space-y-2">
+                <label className="block text-xs font-bold text-amber-300">
+                  ⚡ JavaScript / Web Balli
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={codingConfig.jsReward}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, jsReward: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-[10px] text-slate-400">Frontend va skript mashqlari</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-purple-500/30 space-y-2">
+                <label className="block text-xs font-bold text-purple-300">
+                  🏆 Olimpiada Dasturlash Balli
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={codingConfig.olimpiadaReward}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, olimpiadaReward: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-purple-500"
+                />
+                <span className="text-[10px] text-slate-400">Murakkab olimpiada masalalari</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-slate-950 border border-yellow-500/30 space-y-2">
+                <label className="block text-xs font-bold text-yellow-300">
+                  🪙 Oltin Tanga Bonusi (+Coins)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={codingConfig.awardCoinsBonus}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, awardCoinsBonus: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-yellow-500"
+                />
+                <span className="text-[10px] text-slate-400">Har bir yechilgan kod uchun tanga</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-rose-500/30 space-y-2">
+                <label className="block text-xs font-bold text-rose-300">
+                  📅 Kunlik Maksimal Ball Limiti
+                </label>
+                <input
+                  type="number"
+                  min="10"
+                  value={codingConfig.dailyMaxScore}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, dailyMaxScore: Number(e.target.value) || 100 })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-rose-500"
+                />
+                <span className="text-[10px] text-slate-400">Spamdan himoya qilish uchun limit</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950 border border-sky-500/30 space-y-2">
+                <label className="block text-xs font-bold text-sky-300">
+                  🌐 Raqamli Ustoz Google Sites Linki
+                </label>
+                <input
+                  type="url"
+                  value={codingConfig.digitalMentorExternalUrl || ''}
+                  onChange={(e) => setCodingConfig({ ...codingConfig, digitalMentorExternalUrl: e.target.value })}
+                  placeholder="https://sites.google.com/..."
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-white focus:outline-none focus:border-sky-500"
+                />
+                <span className="text-[10px] text-slate-400">Yangi tabda ochiladigan Google Sites havolasi</span>
+              </div>
+            </div>
+          </form>
+
+          {/* O'quvchilar Dasturlash Ballari Ro'yxati */}
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <Laptop className="w-5 h-5 text-emerald-400" />
+                  <span>O'quvchilarning Dasturlash Natijalari va Ballari</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Har bir o'quvchining dasturlash ballini bevosita ko'ring, qo'shing yoki kamaytiring.
+                </p>
+              </div>
+
+              <div className="relative min-w-[240px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={codingStudentSearch}
+                  onChange={(e) => setCodingStudentSearch(e.target.value)}
+                  placeholder="O'quvchini qidirish..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-950 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                    <th className="py-3 px-3">O'rin</th>
+                    <th className="py-3 px-3">O'quvchi</th>
+                    <th className="py-3 px-3">Dasturlash Balli 💻</th>
+                    <th className="py-3 px-3">Jami Ball ⚡</th>
+                    <th className="py-3 px-3">Yechilgan Kodlar</th>
+                    <th className="py-3 px-3 text-right">Tezkor Kod Balli Boshqaruvi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-xs">
+                  {users
+                    .filter((u) => {
+                      if (!codingStudentSearch.trim()) return true;
+                      const q = codingStudentSearch.toLowerCase();
+                      return (
+                        u.name.toLowerCase().includes(q) ||
+                        u.username.toLowerCase().includes(q) ||
+                        (u.region || '').toLowerCase().includes(q)
+                      );
+                    })
+                    .slice(0, 25)
+                    .map((u, idx) => (
+                      <tr key={`code_u_${u.id}_${idx}`} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-400">
+                          #{idx + 1}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-white text-xs shrink-0 overflow-hidden">
+                              {u.avatarUrl ? (
+                                <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{u.name.charAt(0)}</span>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-bold text-white flex items-center gap-1.5">
+                                <span>{u.name}</span>
+                                {u.customBadge && (
+                                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px]">
+                                    {u.customBadge}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-400">
+                                @{u.username} · {u.region || "O'zbekiston"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-mono font-black text-emerald-400 text-sm">
+                          💻 {u.codingScore || 0}
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-amber-300">
+                          ⚡ {u.totalScore}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-sky-300 font-semibold">
+                          🧩 {u.solvedCodingCount || 0} ta
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStudentCodingScore(u.id, 20, "Python amaliyot topshirig'i")}
+                              className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/40 text-[10px] font-bold text-emerald-200 cursor-pointer"
+                            >
+                              +20 💻
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStudentCodingScore(u.id, 50, "C++ va Algoritm masalasi")}
+                              className="px-2.5 py-1 rounded bg-teal-500/20 hover:bg-teal-500/35 border border-teal-500/40 text-[10px] font-bold text-teal-200 cursor-pointer"
+                            >
+                              +50 ⚡
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStudentCodingScore(u.id, 100, "Respublika Dasturlash Olimpiadasi")}
+                              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-[10px] font-bold text-amber-200 cursor-pointer"
+                            >
+                              +100 🏆
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustStudentCodingScore(u.id, -50, "Qoida buzilishi / plagiat")}
+                              className="px-2 py-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-[10px] font-bold text-rose-300 cursor-pointer"
+                            >
+                              -50 ⚠️
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAdjustCodingUser(u);
+                                setAdjustCodingDelta(50);
+                              }}
+                              className="px-2.5 py-1 rounded bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 text-[10px] font-bold text-sky-200 cursor-pointer"
+                            >
+                              ✏️ Maxsus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
       {/* SECTION: RASMIY BILDIRISHNOMALAR VA E'LONLAR MARKAZI                   */}
       {/* ===================================================================== */}
       {activeSection === 'announcements' && (
@@ -3008,6 +3479,126 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
           </form>
+
+          {/* Media Gallery / Elementlar Ro'yxati */}
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <Video className="w-5 h-5 text-rose-400" />
+                  <span>Yuklangan Video va Rasmlar Ro'yxati ({mediaItems.length})</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Admin paneldan video va rasmlarni almashtirish, qo'shish va o'chirish imkoniyati
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingMediaId(null);
+                  setMediaFormTitle('');
+                  setMediaFormType('video');
+                  setMediaFormUrl('');
+                  setMediaFormCategory('Darslar');
+                  setMediaFormDesc('');
+                  setIsAddMediaModalOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-rose-500/20 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>➕ Yangi Video yoki Rasm Qo'shish</span>
+              </button>
+            </div>
+
+            {mediaItems.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                Hozircha qo'shimcha media elementlari mavjud emas. Yuqoridagi tugma orqali yangi video yoki rasm qo'shishingiz mumkin.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mediaItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500/40 p-4 space-y-3 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center">
+                        {item.type === 'video' ? (
+                          <div className="flex flex-col items-center justify-center text-rose-400 gap-1.5 p-2 text-center">
+                            <Play className="w-8 h-8 fill-rose-500/20 text-rose-400" />
+                            <span className="text-[10px] font-mono text-slate-400 truncate max-w-full px-2">
+                              {item.url}
+                            </span>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <span
+                          className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded shadow ${
+                            item.type === 'video'
+                              ? 'bg-rose-600 text-white'
+                              : 'bg-sky-600 text-white'
+                          }`}
+                        >
+                          {item.type === 'video' ? '🎬 Video' : '🖼️ Rasm'}
+                        </span>
+                        <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/80 text-amber-300 border border-amber-500/30">
+                          🏷️ {item.category}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-white line-clamp-1">{item.title}</h4>
+                        {item.description && (
+                          <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Ko'rish</span>
+                      </a>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditMedia(item)}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Almashtirish</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMediaItem(item.id)}
+                          className="p-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900 text-rose-300 text-xs cursor-pointer"
+                          title="O'chirish"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -4668,6 +5259,273 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MEDIA ADD / EDIT MODAL ("video va rasmlarni almashtirish, qo'shish") */}
+      {/* ========================================================= */}
+      {isAddMediaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto">
+          <form
+            onSubmit={handleSaveMediaItem}
+            className="w-full max-w-lg rounded-2xl bg-slate-900 border-2 border-rose-500/50 p-6 space-y-4 shadow-2xl my-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-rose-400" />
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    {editingMediaId ? "✏️ Media Elementini Tahrirlash / Almashtirish" : "➕ Yangi Video yoki Rasm Qo'shish"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Platforma video va rasmlarini to'liq boshqaring
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMediaModalOpen(false);
+                  setEditingMediaId(null);
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Turi *
+                </label>
+                <select
+                  value={mediaFormType}
+                  onChange={(e) => setMediaFormType(e.target.value as 'video' | 'image')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
+                >
+                  <option value="video">🎬 Video (YouTube / MP4)</option>
+                  <option value="image">🖼️ Rasm (Banner / Ilustratsiya)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Kategoriya *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={mediaFormCategory}
+                  onChange={(e) => setMediaFormCategory(e.target.value)}
+                  placeholder="Darslar, Olimpiada, Taqdimot..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Media Nomi / Sarlavha *
+              </label>
+              <input
+                type="text"
+                required
+                value={mediaFormTitle}
+                onChange={(e) => setMediaFormTitle(e.target.value)}
+                placeholder="Masalan: Python Algoritmlar Darsi #1"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                URL Havolasi *
+              </label>
+              <input
+                type="text"
+                required
+                value={mediaFormUrl}
+                onChange={(e) => setMediaFormUrl(e.target.value)}
+                placeholder="https://... yoki /public/assets/..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Tavsif (ixtiyoriy)
+              </label>
+              <textarea
+                rows={2}
+                value={mediaFormDesc}
+                onChange={(e) => setMediaFormDesc(e.target.value)}
+                placeholder="Media haqida qisqacha izoh..."
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
+              />
+            </div>
+
+            {/* Live Preview Box */}
+            {mediaFormUrl && (
+              <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400">Ko'rinish:</span>
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
+                  {mediaFormType === 'video' ? (
+                    <div className="flex flex-col items-center justify-center text-rose-400 gap-1">
+                      <Play className="w-8 h-8 fill-rose-500/20 text-rose-400" />
+                      <span className="text-[10px] font-mono text-slate-300 truncate max-w-xs px-2">{mediaFormUrl}</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={mediaFormUrl}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMediaModalOpen(false);
+                  setEditingMediaId(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 cursor-pointer"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingMediaForm}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-rose-500/25 cursor-pointer disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSubmittingMediaForm ? "Saqlanmoqda..." : "💾 Saqlash"}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* CUSTOM CODING SCORE ADJUST MODAL                         */}
+      {/* ========================================================= */}
+      {adjustCodingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border-2 border-emerald-500/50 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Code2 className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    💻 Kod Yozish Ballini O'zgartirish
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {adjustCodingUser.name} (@{adjustCodingUser.username})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdjustCodingUser(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 grid grid-cols-2 gap-2 text-center text-xs">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Hozirgi Kod Balli:</span>
+                <span className="font-mono font-bold text-emerald-400 text-sm">
+                  💻 {adjustCodingUser.codingScore || 0}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Umumiy Balli:</span>
+                <span className="font-mono font-bold text-amber-300 text-sm">
+                  ⚡ {adjustCodingUser.totalScore}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Tezkor Shabloni Tanlang:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[+20, +50, +100, +200, -20, -50].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setAdjustCodingDelta(d)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      adjustCodingDelta === d
+                        ? d > 0
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-300'
+                          : 'bg-rose-500 text-white border-rose-300'
+                        : d > 0
+                        ? 'bg-slate-950 text-emerald-300 border-slate-800'
+                        : 'bg-slate-950 text-rose-300 border-slate-800'
+                    }`}
+                  >
+                    {d > 0 ? `+${d}` : d} ball
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Qo'shiladigan / Ayiriladigan Ball (Delta):
+              </label>
+              <input
+                type="number"
+                value={adjustCodingDelta}
+                onChange={(e) => setAdjustCodingDelta(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 text-sm font-mono font-bold text-emerald-300"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Sababi / Izoh:
+              </label>
+              <input
+                type="text"
+                value={adjustCodingReason}
+                onChange={(e) => setAdjustCodingReason(e.target.value)}
+                placeholder="Masalan: Kod Olimpiadasidagi g'alaba uchun"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setAdjustCodingUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 cursor-pointer"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                disabled={isBusyAction}
+                onClick={() => handleAdjustStudentCodingScore(adjustCodingUser.id, adjustCodingDelta, adjustCodingReason)}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4" />
+                <span>{isBusyAction ? "Saqlanmoqda..." : "⚡ Kod Ballini Saqlash"}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

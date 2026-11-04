@@ -116,6 +116,28 @@ export interface StoredSecurityConfig {
   updatedAt?: string;
 }
 
+export interface StoredCodingConfig {
+  pythonReward: number;
+  cppReward: number;
+  jsReward: number;
+  htmlReward: number;
+  olimpiadaReward: number;
+  dailyMaxScore: number;
+  awardCoinsBonus: number;
+  digitalMentorExternalUrl?: string;
+  updatedAt?: string;
+}
+
+export interface StoredMediaItem {
+  id: string;
+  title: string;
+  type: "video" | "image";
+  url: string;
+  category: "entrance_video" | "lesson_video" | "banner" | "background" | "showcase" | "olympiad";
+  description?: string;
+  createdAt: string;
+}
+
 export type Difficulty = 'Oson' | "O'rta" | 'Qiyin' | 'Olimpiada';
 
 export type StarColor = "blue" | "green" | "yellow" | "red" | "purple";
@@ -212,6 +234,9 @@ export interface StoredUser {
   }[];
   createdAt: string;
   isBanned?: boolean;
+  codingScore?: number;
+  solvedCodingCount?: number;
+  solvedTestsCount?: number;
 }
 
 export interface StoredStoreCertificate {
@@ -579,6 +604,63 @@ interface PlatformDatabase {
   announcements?: any[];
   notifications?: StoredPlatformNotification[];
   topEntranceVideoUrl?: string;
+  codingConfig?: StoredCodingConfig;
+  mediaItems?: StoredMediaItem[];
+}
+
+function getDefaultCodingConfig(): StoredCodingConfig {
+  return {
+    pythonReward: 5,
+    cppReward: 5,
+    jsReward: 5,
+    htmlReward: 5,
+    olimpiadaReward: 20,
+    dailyMaxScore: 100,
+    awardCoinsBonus: 10,
+    digitalMentorExternalUrl: "https://sites.google.com/view/kitest-dasturlash",
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getDefaultMediaItems(): StoredMediaItem[] {
+  return [
+    {
+      id: "media_video_1",
+      title: "KITEST Rasmiy Kirish & Dars Videosi",
+      type: "video",
+      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      category: "entrance_video",
+      description: "Bosh sahifadagi kirish va tanishtiruv videosi",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "media_banner_1",
+      title: "Respublika Olimpiada Bosh Banneri",
+      type: "image",
+      url: "/public/assets/aistudio/Document_18_1_d651c584.jpg",
+      category: "banner",
+      description: "CHSB va Fan Olimpiadasi bosh banner rasmi",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "media_banner_2",
+      title: "Interaktiv Quiz & Ta'lim Sxemasi",
+      type: "image",
+      url: "/public/assets/aistudio/Document_18_2_0b71b289.jpg",
+      category: "showcase",
+      description: "O'quvchi va ustoz interaktiv aloqa arxitekturasi",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "media_banner_3",
+      title: "Dasturlash Poligoni & IDE Banneri",
+      type: "image",
+      url: "/public/assets/aistudio/Document_18_3_2dc70583.jpg",
+      category: "olympiad",
+      description: "Python, C++ va Algoritmlar bo'yicha ko'rgazma",
+      createdAt: new Date().toISOString(),
+    },
+  ];
 }
 
 function getDefaultNotifications(): StoredPlatformNotification[] {
@@ -932,6 +1014,8 @@ function getInitialEmptyDb(): PlatformDatabase {
     classrooms: [],
     blogs: [],
     teamMembers: getDefaultTeamMembers(),
+    codingConfig: getDefaultCodingConfig(),
+    mediaItems: getDefaultMediaItems(),
   };
 }
 
@@ -1067,6 +1151,14 @@ function loadDb() {
           ? parsed.notifications
           : getDefaultNotifications(),
         topEntranceVideoUrl: parsed.topEntranceVideoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        codingConfig:
+          parsed.codingConfig && typeof parsed.codingConfig === "object"
+            ? parsed.codingConfig
+            : getDefaultCodingConfig(),
+        mediaItems:
+          Array.isArray(parsed.mediaItems) && parsed.mediaItems.length > 0
+            ? parsed.mediaItems
+            : getDefaultMediaItems(),
       };
       if (cleanedDuplicateFaces) {
         saveDb();
@@ -1293,6 +1385,9 @@ function sanitizeUser(u: StoredUser) {
     claimedRewards: missions,
     savedNotes: notes,
     studyNotes: notes,
+    codingScore: u.codingScore ?? 0,
+    solvedCodingCount: u.solvedCodingCount ?? 0,
+    solvedTestsCount: u.solvedTestsCount ?? (u.solvedCount || 0),
   };
 }
 
@@ -6569,6 +6664,239 @@ app.post("/api/admin/tests/manage", (req, res) => {
 
   saveDb();
   res.json({ success: true, test: db.tests[testIdx], tests: db.tests });
+});
+
+// ==========================================
+// 8. KOD YOZISH VA BALLAR BOSHQARUVI (CODING MANAGEMENT)
+// ==========================================
+app.get("/api/coding/config", (_req, res) => {
+  if (!db.codingConfig) db.codingConfig = getDefaultCodingConfig();
+  res.json({ success: true, codingConfig: db.codingConfig });
+});
+
+app.get("/api/admin/coding-config", (_req, res) => {
+  if (!db.codingConfig) db.codingConfig = getDefaultCodingConfig();
+  res.json({ success: true, codingConfig: db.codingConfig });
+});
+
+const handleUpdateCodingConfig = (req: express.Request, res: express.Response) => {
+  if (!verifyAdmin(req, res)) return;
+  const {
+    pythonReward,
+    cppReward,
+    jsReward,
+    htmlReward,
+    olimpiadaReward,
+    dailyMaxScore,
+    awardCoinsBonus,
+    digitalMentorExternalUrl,
+  } = req.body || {};
+
+  if (!db.codingConfig) db.codingConfig = getDefaultCodingConfig();
+
+  if (pythonReward !== undefined) db.codingConfig.pythonReward = Math.max(0, Number(pythonReward) || 0);
+  if (cppReward !== undefined) db.codingConfig.cppReward = Math.max(0, Number(cppReward) || 0);
+  if (jsReward !== undefined) db.codingConfig.jsReward = Math.max(0, Number(jsReward) || 0);
+  if (htmlReward !== undefined) db.codingConfig.htmlReward = Math.max(0, Number(htmlReward) || 0);
+  if (olimpiadaReward !== undefined) db.codingConfig.olimpiadaReward = Math.max(0, Number(olimpiadaReward) || 0);
+  if (dailyMaxScore !== undefined) db.codingConfig.dailyMaxScore = Math.max(10, Number(dailyMaxScore) || 100);
+  if (awardCoinsBonus !== undefined) db.codingConfig.awardCoinsBonus = Math.max(0, Number(awardCoinsBonus) || 0);
+  if (digitalMentorExternalUrl !== undefined) db.codingConfig.digitalMentorExternalUrl = String(digitalMentorExternalUrl).trim();
+  db.codingConfig.updatedAt = new Date().toISOString();
+
+  saveDb();
+  broadcastWs({ type: "coding:config_updated", codingConfig: db.codingConfig });
+
+  res.json({
+    success: true,
+    message: "💻 Kod yozish ballari va qoidalari muvaffaqiyatli yangilandi!",
+    codingConfig: db.codingConfig,
+  });
+};
+
+app.post("/api/admin/coding-config", handleUpdateCodingConfig);
+app.put("/api/admin/coding-config", handleUpdateCodingConfig);
+
+// Admin Manually Adjusts Student's Coding Score
+app.patch("/api/admin/users/:id/coding-score", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { id } = req.params;
+  const { deltaCodingScore, setCodingScore, deltaScore, reason } = req.body || {};
+
+  const user = db.users.find((u) => u.id === id);
+  if (!user) {
+    return res.status(404).json({ error: "Foydalanuvchi topilmadi!" });
+  }
+
+  const prevCodingScore = user.codingScore || 0;
+  if (setCodingScore !== undefined) {
+    user.codingScore = Math.max(0, Number(setCodingScore) || 0);
+    const diff = user.codingScore - prevCodingScore;
+    user.totalScore = Math.max(0, (user.totalScore || 0) + diff);
+    user.rating = Math.max(0, (user.rating || 0) + Math.round(diff / 2));
+  } else if (deltaCodingScore !== undefined) {
+    const delta = Number(deltaCodingScore) || 0;
+    user.codingScore = Math.max(0, prevCodingScore + delta);
+    user.totalScore = Math.max(0, (user.totalScore || 0) + delta);
+    user.rating = Math.max(0, (user.rating || 0) + Math.round(delta / 2));
+    if (delta > 0) {
+      user.solvedCodingCount = (user.solvedCodingCount || 0) + 1;
+    }
+  }
+
+  if (deltaScore !== undefined) {
+    const extraScore = Number(deltaScore) || 0;
+    user.totalScore = Math.max(0, (user.totalScore || 0) + extraScore);
+    user.rating = Math.max(0, (user.rating || 0) + Math.round(extraScore / 2));
+  }
+
+  user.ratingTitle = computeRatingTitle(user.rating);
+  recalculateRanksAndRoles();
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+
+  res.json({
+    success: true,
+    user: sanitizeUser(user),
+    users: allSanitized,
+    message: `⚡ ${user.name} dasturlash balli muvaffaqiyatli o'zgartirildi! (${reason || "Admin qarori"})`,
+  });
+});
+
+// Student Submits / Solves Code (Dynamic Points Award)
+app.post("/api/coding/submit", (req, res) => {
+  const { userId, language, problemId, difficulty = "O'rta" } = req.body || {};
+  if (!userId) {
+    return res.status(401).json({ error: "Avval tizimga kiring!" });
+  }
+
+  const user = db.users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: "Foydalanuvchi topilmadi!" });
+  }
+
+  const cfg = db.codingConfig || getDefaultCodingConfig();
+  let pointsAwarded = cfg.pythonReward;
+  if (language === "cpp") pointsAwarded = cfg.cppReward;
+  else if (language === "javascript") pointsAwarded = cfg.jsReward;
+  else if (language === "html") pointsAwarded = cfg.htmlReward;
+
+  if (difficulty === "Olimpiada") {
+    pointsAwarded = Math.max(pointsAwarded, cfg.olimpiadaReward);
+  }
+
+  const coinsAwarded = cfg.awardCoinsBonus || 10;
+  user.codingScore = (user.codingScore || 0) + pointsAwarded;
+  user.totalScore = (user.totalScore || 0) + pointsAwarded;
+  user.rating = (user.rating || 0) + Math.round(pointsAwarded / 2);
+  user.coins = (user.coins || 0) + coinsAwarded;
+  user.solvedCodingCount = (user.solvedCodingCount || 0) + 1;
+
+  user.ratingTitle = computeRatingTitle(user.rating);
+  recalculateRanksAndRoles();
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+
+  res.json({
+    success: true,
+    pointsAwarded,
+    coinsAwarded,
+    user: sanitizeUser(user),
+    message: `🎉 Kod to'g'ri bajarildi! +${pointsAwarded} Ball va +${coinsAwarded} Coins berildi!`,
+  });
+});
+
+// ==========================================
+// 9. PLATFORMA MEDIA VA VIDEO/RASMLAR BOSHQARUVI
+// ==========================================
+app.get("/api/admin/media", (_req, res) => {
+  if (!Array.isArray(db.mediaItems) || db.mediaItems.length === 0) {
+    db.mediaItems = getDefaultMediaItems();
+  }
+  res.json({ success: true, mediaItems: db.mediaItems });
+});
+
+app.post("/api/admin/media", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { title, type, url, category, description } = req.body || {};
+  if (!title || !url) {
+    return res.status(400).json({ error: "Media nomi va havolasi (URL) kiritilishi shart!" });
+  }
+
+  const newMedia: StoredMediaItem = {
+    id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    title: String(title).trim(),
+    type: type === "video" ? "video" : "image",
+    url: String(url).trim(),
+    category: category || "banner",
+    description: description ? String(description).trim() : undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!Array.isArray(db.mediaItems)) db.mediaItems = [];
+  db.mediaItems.unshift(newMedia);
+  saveDb();
+
+  broadcastWs({ type: "media:updated", mediaItems: db.mediaItems });
+  res.status(201).json({ success: true, media: newMedia, mediaItems: db.mediaItems });
+});
+
+app.put("/api/admin/media/:id", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { id } = req.params;
+  const { title, type, url, category, description } = req.body || {};
+
+  if (!Array.isArray(db.mediaItems)) db.mediaItems = getDefaultMediaItems();
+  const target = db.mediaItems.find((m) => m.id === id);
+  if (!target) {
+    return res.status(404).json({ error: "Media elementi topilmadi!" });
+  }
+
+  if (title) target.title = String(title).trim();
+  if (type) target.type = type === "video" ? "video" : "image";
+  if (url) target.url = String(url).trim();
+  if (category) target.category = category;
+  if (description !== undefined) target.description = String(description).trim();
+
+  saveDb();
+  broadcastWs({ type: "media:updated", mediaItems: db.mediaItems });
+  res.json({ success: true, media: target, mediaItems: db.mediaItems });
+});
+
+app.delete("/api/admin/media/:id", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { id } = req.params;
+
+  if (!Array.isArray(db.mediaItems)) db.mediaItems = getDefaultMediaItems();
+  db.mediaItems = db.mediaItems.filter((m) => m.id !== id);
+  saveDb();
+
+  broadcastWs({ type: "media:updated", mediaItems: db.mediaItems });
+  res.json({ success: true, mediaItems: db.mediaItems });
+});
+
+app.get("/api/digital-mentor/config", (_req, res) => {
+  if (!db.codingConfig) db.codingConfig = getDefaultCodingConfig();
+  res.json({
+    success: true,
+    externalUrl: db.codingConfig.digitalMentorExternalUrl || "https://sites.google.com/view/kitest-dasturlash",
+    codingConfig: db.codingConfig,
+  });
+});
+
+app.post("/api/digital-mentor/config", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { externalUrl } = req.body || {};
+  if (!db.codingConfig) db.codingConfig = getDefaultCodingConfig();
+  if (externalUrl) {
+    db.codingConfig.digitalMentorExternalUrl = String(externalUrl).trim();
+    saveDb();
+  }
+  res.json({ success: true, externalUrl: db.codingConfig.digitalMentorExternalUrl });
 });
 
 // ==========================================

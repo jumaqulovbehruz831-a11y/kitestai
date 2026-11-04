@@ -77,6 +77,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const [inspectedUser, setInspectedUser] = useState<User | null>(null);
   const [subscribingUserId, setSubscribingUserId] = useState<string | null>(null);
   const [feedbackToast, setFeedbackToast] = useState<string>('');
+  const [rankingMetric, setRankingMetric] = useState<'total' | 'coding' | 'tests'>('total');
 
   useEffect(() => {
     setActiveTab(initialViewMode);
@@ -158,10 +159,22 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const sortedUsers = useMemo(
     () =>
       [...users].sort((a, b) => {
+        if (rankingMetric === 'coding') {
+          const bCode = b.codingScore || 0;
+          const aCode = a.codingScore || 0;
+          if (bCode !== aCode) return bCode - aCode;
+          return b.totalScore - a.totalScore;
+        }
+        if (rankingMetric === 'tests') {
+          const bTests = b.totalScore - (b.codingScore || 0);
+          const aTests = a.totalScore - (a.codingScore || 0);
+          if (bTests !== aTests) return bTests - aTests;
+          return b.totalScore - a.totalScore;
+        }
         if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
         return b.rating - a.rating;
       }),
-    [users]
+    [users, rankingMetric]
   );
 
   const filteredUsers = useMemo(() => {
@@ -510,6 +523,221 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             </div>
           </div>
 
+          {/* ===================================================================== */}
+          {/* KITEST REYTING (EXACT USER ASCII WIREFRAME) & COMPARATIVE DIAGRAM     */}
+          {/* ===================================================================== */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Left Card: Exact Wireframe "KITEST REYTING" */}
+            <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 border-2 border-amber-400/70 shadow-2xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between border-b border-amber-500/30 pb-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-400" />
+                    <h2 className="text-base font-black text-amber-300 font-mono tracking-wider">
+                      KITEST REYTING
+                    </h2>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    TOP O'QUVCHILAR
+                  </span>
+                </div>
+
+                <div className="font-mono text-xs bg-slate-950 rounded-xl p-3 border border-amber-500/30 space-y-2 text-slate-300">
+                  <div className="text-[11px] text-amber-400/80 border-b border-slate-800 pb-1 flex justify-between">
+                    <span>┌─────────────────────────────────┐</span>
+                    <span>🏆</span>
+                  </div>
+
+                  {sortedUsers.slice(0, 3).map((u, idx) => (
+                    <div
+                      key={`wireframe_u_${u.id}_${idx}`}
+                      onClick={() => setInspectedUser(u)}
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
+                        idx === 0
+                          ? 'bg-amber-500/15 border-amber-400/60 text-white'
+                          : idx === 1
+                          ? 'bg-slate-800/60 border-slate-600 text-slate-200'
+                          : 'bg-amber-950/30 border-amber-700/50 text-amber-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-sm font-black">{idx + 1}.</span>
+                          <span className="truncate max-w-[150px]">{u.name}</span>
+                        </span>
+                        <span className="text-xs font-mono font-black text-amber-400">
+                          {rankingMetric === 'coding'
+                            ? `${u.codingScore || 0} ball 💻`
+                            : rankingMetric === 'tests'
+                            ? `${u.totalScore - (u.codingScore || 0)} ball 📚`
+                            : `${u.totalScore} ball ⚡`}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center justify-between mt-1 font-mono">
+                        <span>@{u.username}</span>
+                        <span>{u.region || 'Toshkent'} · {u.rating || 1500} MMR</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="text-[11px] text-amber-400/80 border-t border-slate-800 pt-1 flex justify-between">
+                    <span>└─────────────────────────────────┘</span>
+                    <span>⚡ KITEST</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Metric Switcher Tabs */}
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                  Diagramma va ball saralash:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setRankingMetric('total')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      rankingMetric === 'total'
+                        ? 'bg-amber-500 text-slate-950 shadow-md'
+                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    ⚡ Jami Ballar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRankingMetric('coding')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      rankingMetric === 'coding'
+                        ? 'bg-emerald-500 text-slate-950 shadow-md'
+                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    💻 Kod Yozish
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRankingMetric('tests')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      rankingMetric === 'tests'
+                        ? 'bg-sky-500 text-slate-950 shadow-md'
+                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    📚 Test Ballari
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Card: Modern Interactive Comparative Diagram (Top 5 Students) */}
+            <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-3">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                      <span>📊 Zamonaviy Reyting Diagrammasi</span>
+                      <span className="text-[10px] font-mono text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded border border-sky-500/30">
+                        Qiyosiy Ko'rsatkich
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      O'quvchilarning umumiy bali, kod yozish natijalari va test ko'rsatkichlari solishtirmasi
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] font-mono">
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" /> 💻 Kod
+                    </span>
+                    <span className="flex items-center gap-1 text-sky-400">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block" /> 📚 Test
+                    </span>
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" /> ⚡ Jami
+                    </span>
+                  </div>
+                </div>
+
+                {/* Comparative Animated Bars */}
+                <div className="space-y-3 pt-1">
+                  {sortedUsers.slice(0, 5).map((u, uIdx) => {
+                    const maxScore = Math.max(sortedUsers[0]?.totalScore || 100, 1);
+                    const totalWidth = Math.min(100, Math.max(14, (u.totalScore / maxScore) * 100));
+                    const codingPoints = u.codingScore || 0;
+                    const testPoints = Math.max(0, u.totalScore - codingPoints);
+                    const codingWidth = u.totalScore > 0 ? (codingPoints / u.totalScore) * totalWidth : 0;
+                    const testWidth = totalWidth - codingWidth;
+
+                    return (
+                      <div
+                        key={`bar_user_${u.id}_${uIdx}`}
+                        onClick={() => setInspectedUser(u)}
+                        className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-5 h-5 rounded-full flex items-center justify-center font-mono font-bold text-[11px] ${
+                                uIdx === 0
+                                  ? 'bg-amber-500 text-slate-950'
+                                  : uIdx === 1
+                                  ? 'bg-slate-400 text-slate-950'
+                                  : uIdx === 2
+                                  ? 'bg-amber-700 text-white'
+                                  : 'bg-slate-800 text-slate-300'
+                              }`}
+                            >
+                              {uIdx + 1}
+                            </span>
+                            <span className="font-bold text-white group-hover:text-amber-300 transition-colors">
+                              {u.name}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+                              @{u.username}
+                            </span>
+                          </div>
+                          <div className="font-mono text-xs flex items-center gap-2">
+                            <span className="text-emerald-400 font-semibold text-[11px]">
+                              💻 {codingPoints}
+                            </span>
+                            <span className="text-sky-400 font-semibold text-[11px]">
+                              📚 {testPoints}
+                            </span>
+                            <span className="font-extrabold text-amber-400">
+                              ⚡ {u.totalScore} ball
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Stack Bar */}
+                        <div className="h-3 w-full rounded-full bg-slate-900 overflow-hidden flex p-0.5 gap-0.5">
+                          {codingWidth > 0 && (
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${codingWidth}%` }}
+                              transition={{ duration: 0.6, ease: 'easeOut' }}
+                              className="h-full rounded-l-full bg-emerald-500 relative"
+                              title={`Kod balli: ${codingPoints}`}
+                            />
+                          )}
+                          {testWidth > 0 && (
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${testWidth}%` }}
+                              transition={{ duration: 0.6, ease: 'easeOut' }}
+                              className={`h-full ${codingWidth > 0 ? 'rounded-r-full' : 'rounded-full'} bg-sky-500`}
+                              title={`Test balli: ${testPoints}`}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Top 3 Champions Podium (1st, 2nd, 3rd) */}
           {sortedUsers.length >= 2 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 border border-slate-800 shadow-xl">
@@ -606,7 +834,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                     <th className="py-3 px-4">Hudud / Muassasa</th>
                     <th className="py-3 px-4 text-right">Yechilgan</th>
                     <th className="py-3 px-4 text-right">🪙 Tanga / ⭐ Yulduz</th>
-                    <th className="py-3 px-4 text-right">Ball</th>
+                    <th className="py-3 px-4 text-right">⚡ Jami / 💻 Kod</th>
                     <th className="py-3 px-4 text-right">Obuna</th>
                   </tr>
                 </thead>
@@ -705,8 +933,13 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                             </span>
                           </td>
 
-                          <td className="py-3 px-4 text-right font-mono text-xs font-bold text-amber-400">
-                            {user.totalScore}
+                          <td className="py-3 px-4 text-right font-mono text-xs">
+                            <div className="font-extrabold text-amber-400">
+                              ⚡ {user.totalScore}
+                            </div>
+                            <div className="text-[10px] text-emerald-400 font-semibold">
+                              💻 {user.codingScore || 0}
+                            </div>
                           </td>
 
                           <td className="py-3 px-4 text-right">

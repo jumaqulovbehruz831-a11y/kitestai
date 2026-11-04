@@ -196,11 +196,23 @@ export const KitestGramView: React.FC<KitestGramViewProps> = ({
       const data = await res.json();
       if (Array.isArray(data.messages)) {
         setMessages(data.messages);
+        try {
+          localStorage.setItem('kitest_gram_persisted_msgs', JSON.stringify(data.messages.slice(-100)));
+        } catch {}
       }
     } catch {}
   };
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('kitest_gram_persisted_msgs');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch {}
     fetchMessages();
     const interval = setInterval(fetchMessages, 1500);
     return () => clearInterval(interval);

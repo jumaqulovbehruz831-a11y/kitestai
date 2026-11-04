@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Code2,
@@ -18,7 +18,7 @@ import {
   Minimize2,
   FileCode,
 } from 'lucide-react';
-import { User } from '../types';
+import { User, CodingConfig } from '../types';
 import { playKitestSound } from './KitestEmblem';
 import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 
@@ -289,7 +289,17 @@ export const CodeStudioView: React.FC<CodeStudioViewProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [execTimeMs, setExecTimeMs] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [codingConfig, setCodingConfig] = useState<CodingConfig | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    fetch('/api/coding/config')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.config) setCodingConfig(d.config);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSelectLanguage = (lang: CodeLanguage) => {
     setActiveLang(lang);
@@ -388,14 +398,35 @@ export const CodeStudioView: React.FC<CodeStudioViewProps> = ({
           setOutputConsole(logs.join('\n'));
         }
 
-        // Award score reward!
+        // Award score reward dynamically managed by Admin!
+        let rewardPoints = 20;
+        if (codingConfig) {
+          if (activeLang === 'python') rewardPoints = codingConfig.pythonReward ?? 20;
+          else if (activeLang === 'cpp') rewardPoints = codingConfig.cppReward ?? 25;
+          else if (activeLang === 'javascript') rewardPoints = codingConfig.jsReward ?? 15;
+          else if (activeLang === 'html') rewardPoints = codingConfig.htmlReward ?? 10;
+        }
+        const rewardCoins = codingConfig?.awardCoinsBonus ?? 10;
+
         if (currentUser) {
           triggerScoreReward({
             type: 'points',
-            amount: 5,
-            label: 'Ball (Dasturlash)',
+            amount: rewardPoints,
+            label: `Ball (${activeLang.toUpperCase()} - Admin sozlamasi)`,
           });
-          onUpdateScore?.(5, 10);
+          onUpdateScore?.(rewardPoints, rewardCoins);
+
+          // Submit code solution to backend API to persist codingScore and solved count
+          fetch('/api/coding/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: currentUser.id,
+              language: activeLang,
+              difficulty: 'Oson',
+              code,
+            }),
+          }).catch(() => {});
         }
         playKitestSound('success', soundEnabled);
       } catch (err: any) {
@@ -449,10 +480,21 @@ export const CodeStudioView: React.FC<CodeStudioViewProps> = ({
 
         <div className="flex items-center gap-3">
           <div className="px-4 py-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-right">
-            <div className="text-[10px] font-bold text-slate-400 uppercase">Yutuq Mukofoti</div>
-            <div className="text-sm font-black text-amber-400 flex items-center justify-end gap-1">
-              <Zap className="w-3.5 h-3.5" />
-              <span>+5 Ball / +10 Tanga</span>
+            <div className="text-[10px] font-bold text-slate-400 uppercase">
+              ⚡ Admin Belgilagan Ball ({activeLang.toUpperCase()})
+            </div>
+            <div className="text-sm font-black text-amber-400 flex items-center justify-end gap-1 font-mono">
+              <Zap className="w-3.5 h-3.5 fill-amber-400" />
+              <span>
+                +{activeLang === 'python'
+                  ? codingConfig?.pythonReward ?? 20
+                  : activeLang === 'cpp'
+                  ? codingConfig?.cppReward ?? 25
+                  : activeLang === 'javascript'
+                  ? codingConfig?.jsReward ?? 15
+                  : codingConfig?.htmlReward ?? 10}{' '}
+                Ball / +{codingConfig?.awardCoinsBonus ?? 10} 🪙
+              </span>
             </div>
           </div>
 

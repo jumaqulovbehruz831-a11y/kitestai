@@ -823,7 +823,8 @@ export async function handleClientApiRequest(
   // 12. KitestGram Chat Messages
   if (path === '/api/chat/messages') {
     if (method === 'GET') {
-      return new Response(JSON.stringify(state.messages || []), {
+      const msgs = state.messages || [];
+      return new Response(JSON.stringify({ ok: true, messages: msgs }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -832,10 +833,12 @@ export async function handleClientApiRequest(
       const messages: any[] = state.messages || [];
       const newMsg = {
         id: `msg_${Date.now()}`,
+        roomId: body.roomId || 'gram_news',
         senderId: body.senderId || 'user',
         senderName: body.senderName || 'Foydalanuvchi',
         senderAvatar: body.senderAvatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user',
         text: body.text || '',
+        imageUrl: body.imageUrl,
         codeSnippet: body.codeSnippet,
         codeLanguage: body.codeLanguage,
         reactions: {},
@@ -843,10 +846,204 @@ export async function handleClientApiRequest(
       };
       messages.push(newMsg);
       saveClientState({ messages });
-      return new Response(JSON.stringify({ ok: true, message: newMsg }), {
+      return new Response(JSON.stringify({ ok: true, message: newMsg, messages }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+  }
+
+  // Coding Configuration & Scoring Endpoints
+  if (path === '/api/coding/config' || path === '/api/admin/coding-config') {
+    const defaultCodingConfig = {
+      pythonReward: 5,
+      cppReward: 5,
+      jsReward: 5,
+      htmlReward: 5,
+      olimpiadaReward: 20,
+      dailyMaxScore: 100,
+      awardCoinsBonus: 10,
+      digitalMentorExternalUrl: "https://sites.google.com/view/kitest-dasturlash",
+      updatedAt: new Date().toISOString(),
+    };
+    if (method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          codingConfig: state.codingConfig || defaultCodingConfig,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (method === 'POST' || method === 'PUT') {
+      const updatedConfig = { ...(state.codingConfig || defaultCodingConfig), ...body, updatedAt: new Date().toISOString() };
+      saveClientState({ codingConfig: updatedConfig });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "💻 Kod yozish ballari muvaffaqiyatli saqlandi!",
+          codingConfig: updatedConfig,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // Admin adjustments of student coding score
+  if (path.includes('/coding-score')) {
+    const parts = path.split('/');
+    const targetUserId = parts[parts.indexOf('users') + 1];
+    const users: any[] = state.users || [];
+    const user = users.find((u) => u.id === targetUserId);
+    if (user) {
+      const prevCoding = user.codingScore || 0;
+      if (body.setCodingScore !== undefined) {
+        user.codingScore = Math.max(0, Number(body.setCodingScore) || 0);
+        const diff = user.codingScore - prevCoding;
+        user.totalScore = Math.max(0, (user.totalScore || 0) + diff);
+        user.rating = Math.max(0, (user.rating || 0) + Math.round(diff / 2));
+      } else if (body.deltaCodingScore !== undefined) {
+        const delta = Number(body.deltaCodingScore) || 0;
+        user.codingScore = Math.max(0, prevCoding + delta);
+        user.totalScore = Math.max(0, (user.totalScore || 0) + delta);
+        user.rating = Math.max(0, (user.rating || 0) + Math.round(delta / 2));
+        if (delta > 0) user.solvedCodingCount = (user.solvedCodingCount || 0) + 1;
+      }
+      if (body.deltaScore !== undefined) {
+        const extra = Number(body.deltaScore) || 0;
+        user.totalScore = Math.max(0, (user.totalScore || 0) + extra);
+        user.rating = Math.max(0, (user.rating || 0) + Math.round(extra / 2));
+      }
+      saveClientState({ users });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          user,
+          users,
+          message: `⚡ ${user.name} dasturlash balli muvaffaqiyatli saqlandi!`,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // Code Submit Endpoint
+  if (path === '/api/coding/submit') {
+    const { userId, language, difficulty = "O'rta" } = body;
+    const users: any[] = state.users || [];
+    const user = users.find((u) => u.id === userId);
+    if (user) {
+      const cfg = state.codingConfig || { pythonReward: 5, cppReward: 5, jsReward: 5, htmlReward: 5, olimpiadaReward: 20, awardCoinsBonus: 10 };
+      let pts = cfg.pythonReward;
+      if (language === 'cpp') pts = cfg.cppReward;
+      else if (language === 'javascript') pts = cfg.jsReward;
+      else if (language === 'html') pts = cfg.htmlReward;
+      if (difficulty === 'Olimpiada') pts = Math.max(pts, cfg.olimpiadaReward);
+
+      user.codingScore = (user.codingScore || 0) + pts;
+      user.totalScore = (user.totalScore || 0) + pts;
+      user.rating = (user.rating || 0) + Math.round(pts / 2);
+      user.coins = (user.coins || 0) + (cfg.awardCoinsBonus || 10);
+      user.solvedCodingCount = (user.solvedCodingCount || 0) + 1;
+
+      saveClientState({ users });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          pointsAwarded: pts,
+          coinsAwarded: cfg.awardCoinsBonus || 10,
+          user,
+          message: `🎉 Kod to'g'ri bajarildi! +${pts} Ball berildi!`,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // Media Management Endpoints
+  if (path === '/api/admin/media' || path.startsWith('/api/admin/media/')) {
+    const defaultMedia = [
+      { id: "media_video_1", title: "KITEST Rasmiy Kirish & Dars Videosi", type: "video", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", category: "entrance_video", description: "Bosh sahifa videosi", createdAt: new Date().toISOString() },
+      { id: "media_banner_1", title: "Respublika Olimpiada Bosh Banneri", type: "image", url: "/public/assets/aistudio/Document_18_1_d651c584.jpg", category: "banner", description: "Olimpiada banneri", createdAt: new Date().toISOString() },
+      { id: "media_banner_2", title: "Interaktiv Quiz & Ta'lim Sxemasi", type: "image", url: "/public/assets/aistudio/Document_18_2_0b71b289.jpg", category: "showcase", description: "Ta'lim sxemasi", createdAt: new Date().toISOString() },
+      { id: "media_banner_3", title: "Dasturlash Poligoni & IDE Banneri", type: "image", url: "/public/assets/aistudio/Document_18_3_2dc70583.jpg", category: "olympiad", description: "Dasturlash banneri", createdAt: new Date().toISOString() },
+    ];
+    let mediaItems: any[] = state.mediaItems || defaultMedia;
+
+    if (method === 'GET') {
+      return new Response(JSON.stringify({ success: true, mediaItems }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (method === 'POST') {
+      const newItem = {
+        id: `media_${Date.now()}`,
+        title: body.title || "Yangi Media",
+        type: body.type === "video" ? "video" : "image",
+        url: body.url || "",
+        category: body.category || "banner",
+        description: body.description || "",
+        createdAt: new Date().toISOString(),
+      };
+      mediaItems.unshift(newItem);
+      saveClientState({ mediaItems });
+      return new Response(JSON.stringify({ success: true, media: newItem, mediaItems }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (method === 'PUT') {
+      const id = path.split('/').pop();
+      const target = mediaItems.find((m) => m.id === id);
+      if (target) {
+        if (body.title) target.title = body.title;
+        if (body.type) target.type = body.type;
+        if (body.url) target.url = body.url;
+        if (body.category) target.category = body.category;
+        if (body.description !== undefined) target.description = body.description;
+        saveClientState({ mediaItems });
+      }
+      return new Response(JSON.stringify({ success: true, mediaItems }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (method === 'DELETE') {
+      const id = path.split('/').pop();
+      mediaItems = mediaItems.filter((m) => m.id !== id);
+      saveClientState({ mediaItems });
+      return new Response(JSON.stringify({ success: true, mediaItems }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Raqamli Ustoz Config Endpoint
+  if (path === '/api/digital-mentor/config') {
+    if (method === 'GET') {
+      const cfg = state.codingConfig || {};
+      return new Response(
+        JSON.stringify({
+          success: true,
+          externalUrl: cfg.digitalMentorExternalUrl || "https://sites.google.com/view/kitest-dasturlash",
+          codingConfig: cfg,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (method === 'POST') {
+      const cfg = state.codingConfig || {};
+      cfg.digitalMentorExternalUrl = body.externalUrl || "https://sites.google.com/view/kitest-dasturlash";
+      saveClientState({ codingConfig: cfg });
+      return new Response(
+        JSON.stringify({ success: true, externalUrl: cfg.digitalMentorExternalUrl }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 

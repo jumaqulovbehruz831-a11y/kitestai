@@ -30,6 +30,9 @@ import {
   ArrowRight,
   Radio,
   Share2,
+  ExternalLink,
+  Clock,
+  Crown,
 } from 'lucide-react';
 
 interface LiveQuizCard {
@@ -100,6 +103,105 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
   const [newSubject, setNewSubject] = useState<string>('Matematika');
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
   const [requestSent, setRequestSent] = useState<boolean>(false);
+
+  // Digital Mentor Google Sites external URL
+  const [digitalMentorUrl, setDigitalMentorUrl] = useState<string>('https://sites.google.com/view/kitest-dasturlash');
+
+  // Interactive "KITEST TEST" Simulator State (Exact User ASCII Wireframe)
+  const [simQuestionIdx, setSimQuestionIdx] = useState<number>(0);
+  const [simSelectedOpt, setSimSelectedOpt] = useState<number | null>(null);
+  const [simTimer, setSimTimer] = useState<number>(45);
+  const [simScore, setSimScore] = useState<number>(100);
+  const [simFeedback, setSimFeedback] = useState<string | null>(null);
+
+  const simQuestions = [
+    {
+      question: "Python dasturlash tilida ro'yxat uzunligini aniqlash uchun qaysi funksiyadan foydalaniladi?",
+      options: ["len()", "count()", "size()", "length()"],
+      correct: 0,
+      points: 100,
+    },
+    {
+      question: "Algoritmning asosiy xossalaridan biri qaysi hisoblanadi?",
+      options: ["Cheklilik (Diskretlik)", "Noaniqlik", "Ixtiyoriylik", "Faqat sonlar bilan ishlash"],
+      correct: 0,
+      points: 100,
+    },
+    {
+      question: "C++ tilida konsolga ma'lumot chiqarish uchun qaysi oqim operatoridan foydalaniladi?",
+      options: ["std::cin >>", "std::cout <<", "print()", "console.log()"],
+      correct: 1,
+      points: 100,
+    },
+    {
+      question: "KITEST platformasida o'quvchining jami bali qanday hisoblanadi?",
+      options: [
+        "Faqat test natijalaridan",
+        "Test + Dasturlash (Kod) + Olimpiada ballari yig'indisi",
+        "Faqat tangalar sonidan",
+        "Faqat yulduzchalar sonidan",
+      ],
+      correct: 1,
+      points: 100,
+    },
+  ];
+
+  // Countdown timer for simulator (45 seconds)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSimTimer((prev) => (prev > 0 ? prev - 1 : 45));
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Fetch digital mentor config from API
+  useEffect(() => {
+    fetch('/api/digital-mentor/config')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.config?.externalUrl) setDigitalMentorUrl(d.config.externalUrl);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleNextSimQuestion = () => {
+    if (simSelectedOpt === null) {
+      setSimFeedback("Iltimos, avval birorta javob variantini tanlang!");
+      setTimeout(() => setSimFeedback(null), 2500);
+      return;
+    }
+
+    const currentQ = simQuestions[simQuestionIdx];
+    const isCorrect = simSelectedOpt === currentQ.correct;
+
+    if (isCorrect) {
+      playKitestSound('success', soundEnabled);
+      triggerScoreReward({
+        type: 'points',
+        amount: currentQ.points,
+        label: "KITEST TEST Ball",
+      });
+      if (currentUser) {
+        onUpdateUser({
+          ...currentUser,
+          totalScore: (currentUser.totalScore || 0) + currentQ.points,
+          rating: (currentUser.rating || 0) + currentQ.points,
+        });
+      }
+      setSimScore((s) => s + currentQ.points);
+      setSimFeedback("✅ To'g'ri javob! +100 Ball qo'shildi!");
+    } else {
+      playKitestSound('click', soundEnabled);
+      setSimFeedback("❌ Noto'g'ri javob. Keyingi savolga o'tildi.");
+    }
+
+    setTimeout(() => {
+      setSimFeedback(null);
+      setSimSelectedOpt(null);
+      setSimTimer(45);
+      setSimQuestionIdx((prev) => (prev + 1) % simQuestions.length);
+    }, 1200);
+  };
 
   // Poll active rooms every 3s
   const fetchRooms = async () => {
@@ -311,24 +413,36 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
           </p>
         </div>
 
-        {/* Quick Join / Room Code */}
-        <div className="flex flex-col sm:flex-row items-center gap-2">
-          <input
-            type="text"
-            maxLength={6}
-            value={inputRoomCode}
-            onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="6 xonali kod (masalan: 749201)"
-            className="px-4 py-2.5 rounded-2xl bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm font-bold tracking-widest focus:border-orange-500 focus:outline-none w-48"
-          />
-          <button
-            type="button"
-            onClick={() => handleJoinWithCode()}
-            disabled={isJoining}
-            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all cursor-pointer whitespace-nowrap"
+        {/* Quick Join / Room Code & Google Sites Button */}
+        <div className="flex flex-col sm:flex-row items-center gap-2.5">
+          <a
+            href={digitalMentorUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all whitespace-nowrap cursor-pointer"
           >
-            {isJoining ? "Ulanmoqda..." : "🚀 Qo'shilish"}
-          </button>
+            <ExternalLink className="w-4 h-4" />
+            <span>🌐 Google da Yangi Tabda Ochish</span>
+          </a>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              maxLength={6}
+              value={inputRoomCode}
+              onChange={(e) => setInputRoomCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="6 xonali kod (masalan: 749201)"
+              className="px-4 py-2.5 rounded-2xl bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm font-bold tracking-widest focus:border-orange-500 focus:outline-none w-44"
+            />
+            <button
+              type="button"
+              onClick={() => handleJoinWithCode()}
+              disabled={isJoining}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all cursor-pointer whitespace-nowrap"
+            >
+              {isJoining ? "Ulanmoqda..." : "🚀 Qo'shilish"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -338,6 +452,198 @@ export const RaqamliUstozView: React.FC<RaqamliUstozViewProps> = ({
           <span>{joinError}</span>
         </div>
       )}
+
+      {/* ===================================================================== */}
+      {/* 4. PLATFORMA ASOSIY OYNALARI: KITEST TEST VA TIZIM SXEMASI            */}
+      {/* ===================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Card 1: Exact ASCII Wireframe "KITEST TEST" Interactive Simulator */}
+        <div className="lg:col-span-6 p-6 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 border-2 border-emerald-500/60 shadow-2xl flex flex-col justify-between">
+          <div>
+            {/* Header: KITEST TEST */}
+            <div className="border border-emerald-500/40 rounded-2xl bg-slate-950 p-4 mb-4 text-center">
+              <span className="text-[10px] font-mono text-emerald-400 block tracking-widest uppercase">
+                ┌──────────────────────────────┐
+              </span>
+              <h2 className="text-lg font-black text-emerald-300 font-mono tracking-wider py-1">
+                KITEST TEST
+              </h2>
+              <span className="text-[10px] font-mono text-emerald-400 block tracking-widest uppercase">
+                ├──────────────────────────────┤
+              </span>
+            </div>
+
+            {/* Savol Body */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 font-mono text-xs">
+              <div className="text-slate-400 font-bold flex items-center justify-between">
+                <span>Savol: #{simQuestionIdx + 1}</span>
+                <span className="text-amber-400">⚡ +{simQuestions[simQuestionIdx].points} Ball</span>
+              </div>
+              <p className="text-white font-bold text-sm leading-relaxed font-sans">
+                {simQuestionIdx + 1}. {simQuestions[simQuestionIdx].question}
+              </p>
+
+              {/* A, B, C, D Choices */}
+              <div className="space-y-2 pt-2">
+                {simQuestions[simQuestionIdx].options.map((opt, oIdx) => {
+                  const letter = ['A', 'B', 'C', 'D'][oIdx];
+                  const isSelected = simSelectedOpt === oIdx;
+                  return (
+                    <button
+                      key={oIdx}
+                      type="button"
+                      onClick={() => setSimSelectedOpt(oIdx)}
+                      className={`w-full p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer font-sans ${
+                        isSelected
+                          ? 'bg-emerald-500/20 border-emerald-400 text-white font-bold ring-2 ring-emerald-400/50'
+                          : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-850 hover:border-slate-700'
+                      }`}
+                    >
+                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
+                        isSelected ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                      }`}>
+                        {letter}
+                      </span>
+                      <span className="text-xs">{opt}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {simFeedback && (
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/40 text-xs font-bold text-emerald-300 text-center font-sans">
+                  {simFeedback}
+                </div>
+              )}
+
+              {/* [KEYINGI SAVOL] Button */}
+              <div className="pt-2 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleNextSimQuestion}
+                  className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-xs font-mono tracking-wider shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <span>[KEYINGI SAVOL]</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Card Footer: Ball & Vaqt */}
+          <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono px-2">
+            <div className="flex items-center gap-1.5 font-bold text-amber-300">
+              <Zap className="w-4 h-4 fill-amber-300" />
+              <span>Ball: {simScore}</span>
+            </div>
+            <div className="flex items-center gap-1.5 font-bold text-sky-400">
+              <Clock className="w-4 h-4" />
+              <span>Vaqt: 00:{simTimer < 10 ? `0${simTimer}` : simTimer}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Platform Architecture Pipeline (KITEST -> USTOZ / O'QUVCHI -> NATIJALAR -> ADMIN) */}
+        <div className="lg:col-span-6 p-6 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 border-2 border-indigo-500/50 shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-indigo-500/30 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-black text-white font-mono">
+                  KITEST TIZIM TARKIBI VA STRUKTURASI
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                ARXITEKTURA
+              </span>
+            </div>
+
+            {/* ASCII & Modern Pipeline Layout */}
+            <div className="bg-slate-950 rounded-2xl p-4 border border-indigo-500/30 font-mono text-xs space-y-3">
+              {/* KITEST Central Node */}
+              <div className="flex justify-center">
+                <div className="px-6 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/30 border-2 border-amber-300">
+                  KITEST
+                </div>
+              </div>
+
+              {/* Connecting Tree Lines */}
+              <div className="text-center text-slate-500 font-mono text-xs leading-none select-none">
+                <div>|</div>
+                <div>┌───────┴───────┐</div>
+                <div>|               |</div>
+              </div>
+
+              {/* USTOZ vs O'QUVCHI Columns */}
+              <div className="grid grid-cols-2 gap-3 text-center">
+                {/* USTOZ Branch */}
+                <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-500/40 space-y-2">
+                  <div className="font-black text-purple-300 text-xs flex items-center justify-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>USTOZ</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-none">|</div>
+                  <div className="p-1.5 rounded-lg bg-slate-900 border border-purple-500/20 text-[11px] text-purple-200 font-semibold">
+                    Test yaratish
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-none">|</div>
+                  <div className="p-1.5 rounded-lg bg-slate-900 border border-purple-500/20 text-[11px] text-purple-200 font-semibold">
+                    Savollar
+                  </div>
+                </div>
+
+                {/* O'QUVCHI Branch */}
+                <div className="p-3 rounded-xl bg-orange-950/40 border border-orange-500/40 space-y-2">
+                  <div className="font-black text-orange-300 text-xs flex items-center justify-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>O'QUVCHI</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-none">|</div>
+                  <div className="p-1.5 rounded-lg bg-slate-900 border border-orange-500/20 text-[11px] text-orange-200 font-semibold">
+                    Guruhga kirish
+                  </div>
+                  <div className="text-[11px] text-slate-400 leading-none">|</div>
+                  <div className="p-1.5 rounded-lg bg-slate-900 border border-orange-500/20 text-[11px] text-orange-200 font-semibold">
+                    Test ishlash
+                  </div>
+                </div>
+              </div>
+
+              {/* Connecting Tree Lines Converge to NATIJALAR */}
+              <div className="text-center text-slate-500 font-mono text-xs leading-none select-none">
+                <div>|               |</div>
+                <div>└───────┬───────┘</div>
+                <div>|</div>
+              </div>
+
+              {/* NATIJALAR Node */}
+              <div className="flex justify-center">
+                <div className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow-md border border-emerald-400 flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>NATIJALAR</span>
+                </div>
+              </div>
+
+              <div className="text-center text-slate-500 font-mono text-xs leading-none select-none">
+                <div>|</div>
+              </div>
+
+              {/* ADMIN Node */}
+              <div className="flex justify-center">
+                <div className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-xs shadow-md border border-rose-400 flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>ADMIN</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between font-mono">
+            <span>Maqsad: Mukammal ta'lim & raqobat platformasi</span>
+            <span className="text-emerald-400 font-bold">🟢 Sinxronlash Faol</span>
+          </div>
+        </div>
+      </div>
 
       {/* Mode Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-3">

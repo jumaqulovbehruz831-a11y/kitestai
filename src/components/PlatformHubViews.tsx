@@ -426,8 +426,8 @@ export const StudyPlansView: React.FC<StudyPlansViewProps> = ({
                     className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
                   >
                     <option value="">Biriktirilgan test (ixtiyoriy)</option>
-                    {tests.map((t) => (
-                      <option key={t.id} value={t.id}>
+                    {tests.map((t, tIdx) => (
+                      <option key={`hub_step_test_${t.id}_${tIdx}`} value={t.id}>
                         #{t.id} - {t.title}
                       </option>
                     ))}
@@ -927,8 +927,8 @@ export const AlgorithmsView: React.FC<AlgorithmsViewProps> = ({
               className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
             >
               <option value="">Amaliyot uchun test biriktirish (ixtiyoriy)</option>
-              {tests.map((t) => (
-                <option key={t.id} value={t.id}>
+              {tests.map((t, tIdx) => (
+                <option key={`hub_algo_test_${t.id}_${tIdx}`} value={t.id}>
                   #{t.id} - {t.title}
                 </option>
               ))}

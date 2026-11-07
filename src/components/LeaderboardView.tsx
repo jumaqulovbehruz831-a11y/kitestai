@@ -1251,49 +1251,59 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               </div>
 
               <div className="p-5 space-y-4">
+                {inspectedUser.institution && (
+                  <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                    <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span>{inspectedUser.institution}</span>
+                  </div>
+                )}
+
                 {inspectedUser.bio && (
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
                     {inspectedUser.bio}
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">Daraja</div>
-                    <div className="text-sm font-black font-mono text-fuchsia-400 mt-0.5">
-                      {inspectedUser.rankClass ||
-                        computeRankClass(inspectedUser.totalScore)}
+                {/* 4 RoboContest Stat Cards matching Screenshot 8 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30">
+                    <div className="text-[10px] text-slate-400">Musobaqa reytingi</div>
+                    <div className="text-base font-black font-mono text-emerald-400 mt-0.5">
+                      ~{inspectedUser.rating || 1500}
                     </div>
+                    <span className="text-[9px] text-emerald-300 font-bold block mt-0.5">
+                      Dasturchi / Pupil
+                    </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">⚡ Ball</div>
-                    <div className="text-sm font-extrabold font-mono text-amber-400 mt-0.5">
-                      {inspectedUser.totalScore}
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/30">
+                    <div className="text-[10px] text-slate-400">Robo Rank</div>
+                    <div className="text-base font-black font-mono text-cyan-400 mt-0.5">
+                      #{inspectedUser.rank || 4822}
                     </div>
+                    <span className="text-[9px] text-slate-400 font-mono block mt-0.5">
+                      O'zbekiston
+                    </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">🪙 Tanga</div>
-                    <div className="text-sm font-extrabold font-mono text-yellow-300 mt-0.5">
-                      {inspectedUser.coins ?? 0}
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-purple-500/30">
+                    <div className="text-[10px] text-slate-400">Yechilgan masalalar</div>
+                    <div className="text-base font-black font-mono text-purple-300 mt-0.5">
+                      {inspectedUser.solvedCount || 0} / 1477
                     </div>
+                    <span className="text-[9px] text-purple-400 font-mono block mt-0.5">
+                      Algoritmik
+                    </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">⭐ Yulduz</div>
-                    <div className="text-sm font-extrabold font-mono text-sky-300 mt-0.5">
-                      {inspectedUser.stars ?? 0}
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30">
+                    <div className="text-[10px] text-slate-400">Masala ballari</div>
+                    <div className="text-base font-black font-mono text-amber-300 mt-0.5">
+                      {inspectedUser.totalScore || 0} / 29235
                     </div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">Yechilgan</div>
-                    <div className="text-sm font-extrabold font-mono text-emerald-400 mt-0.5">
-                      {inspectedUser.solvedCount}
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[10px] text-slate-400">Obunachi</div>
-                    <div className="text-sm font-extrabold font-mono text-white mt-0.5">
-                      {inspectedUser.followersUserIds?.length || 0}
-                    </div>
+                    <span className="text-[9px] text-amber-400 font-mono block mt-0.5">
+                      Jami ochko
+                    </span>
                   </div>
                 </div>
 

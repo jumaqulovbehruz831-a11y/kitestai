@@ -182,6 +182,8 @@ export const KIDTEST_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURICompone
   KIDTEST_RAW_SVG
 )}`;
 
+export const DEFAULT_AVATAR_DATA_URL = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><defs><linearGradient id="avGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%236366f1"/><stop offset="100%" stop-color="%23a855f7"/></linearGradient></defs><rect width="80" height="80" rx="40" fill="url(%23avGrad)"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-weight="900" font-size="34" fill="%23ffffff">B</text></svg>`;
+
 export const KidTestLogo: React.FC<{
   className?: string;
   sizePx?: number;

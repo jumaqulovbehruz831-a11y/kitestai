@@ -732,8 +732,8 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
                 >
                   <option value="">-- Test tanlanmagan (ixtiyoriy) --</option>
-                  {tests.map((t) => (
-                    <option key={t.id} value={t.id}>
+                  {tests.map((t, tIdx) => (
+                    <option key={`crs_test_${t.id}_${tIdx}`} value={t.id}>
                       #{t.id} · {t.title} ({t.questions.length} savol)
                     </option>
                   ))}
@@ -1003,8 +1003,8 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                         className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
                       >
                         <option value="">-- Mavjud testni biriktirish (ixtiyoriy) --</option>
-                        {tests.map((t) => (
-                          <option key={t.id} value={t.id}>
+                        {tests.map((t, tIdx) => (
+                          <option key={`part_test_${t.id}_${tIdx}`} value={t.id}>
                             #{t.id} · {t.title} ({t.questions.length} savol)
                           </option>
                         ))}

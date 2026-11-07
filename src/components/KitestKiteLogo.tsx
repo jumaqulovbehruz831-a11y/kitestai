@@ -28,54 +28,62 @@ export const KitestKiteLogo: React.FC<{
           viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="shrink-0 drop-shadow-[0_4px_12px_rgba(37,99,235,0.25)]"
+          className="shrink-0 drop-shadow-[0_0_16px_rgba(56,189,248,0.5)]"
         >
           <defs>
-            <linearGradient id="kiteLeft" x1="20" y1="10" x2="50" y2="70" gradientUnits="userSpaceOnUse">
+            <linearGradient id="kPillarStem" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#2563eb" />
-            </linearGradient>
-            <linearGradient id="kiteRight" x1="50" y1="10" x2="80" y2="70" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#60a5fa" />
+              <stop offset="45%" stopColor="#0ea5e9" />
               <stop offset="100%" stopColor="#1d4ed8" />
             </linearGradient>
-            <linearGradient id="kiteBottom" x1="50" y1="40" x2="50" y2="75" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#1e40af" />
-              <stop offset="100%" stopColor="#1e3a8a" />
+            <linearGradient id="kArmTopNeon" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#7c3aed" />
+              <stop offset="50%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#e879f9" />
             </linearGradient>
-            <linearGradient id="kiteRibbon" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#38bdf8" />
+            <linearGradient id="kArmBottomNeon" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#06b6d4" />
+              <stop offset="60%" stopColor="#0284c7" />
               <stop offset="100%" stopColor="#2563eb" />
             </linearGradient>
+            <linearGradient id="kGlossSpecular" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+              <stop offset="60%" stopColor="#ffffff" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <filter id="kGlowFilter" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#38bdf8" floodOpacity="0.5" />
+            </filter>
           </defs>
 
-          {/* Kite Body Facets */}
-          <path d="M50 8 L22 42 L50 72 Z" fill="url(#kiteLeft)" />
-          <path d="M50 8 L78 42 L50 72 Z" fill="url(#kiteRight)" />
-          <path d="M50 42 L22 42 L50 72 Z" fill="#0284c7" opacity="0.3" />
-          <path d="M50 42 L78 42 L50 72 Z" fill="#1e40af" opacity="0.4" />
+          {/* Left Vertical Pillar with rounded pill caps */}
+          <rect x="16" y="12" width="16" height="76" rx="8" fill="url(#kPillarStem)" />
+          <rect x="18" y="14" width="4.5" height="72" rx="2.25" fill="url(#kGlossSpecular)" />
 
-          {/* Kite Inner Cross Structure */}
-          <line x1="50" y1="8" x2="50" y2="72" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" opacity="0.85" />
-          <line x1="22" y1="42" x2="78" y2="42" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" opacity="0.85" />
-
-          {/* Tail String */}
+          {/* Upper Diagonal Arm (Neon Violet / Magenta) with rounded cap */}
           <path
-            d="M50 72 Q42 82 46 90 T38 98"
-            stroke="#2563eb"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            fill="none"
+            d="M34 50 L68 18 C71 15 77 15 81 19 C85 23 85 29 81 33 L49 61 Z"
+            fill="url(#kArmTopNeon)"
+          />
+          <path
+            d="M36 49 L68 20 C70 18 74 18 77 21 L47 52 Z"
+            fill="url(#kGlossSpecular)"
+            opacity="0.5"
           />
 
-          {/* Ribbon Bows on Tail */}
-          <circle cx="44" cy="81" r="2.2" fill="#38bdf8" />
-          <path d="M41 79 L47 83 M47 79 L41 83" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" />
+          {/* Lower Diagonal Arm (Neon Cyan / Blue) with rounded cap */}
+          <path
+            d="M36 48 L71 81 C75 85 81 85 85 81 C89 77 89 71 85 67 L51 36 Z"
+            fill="url(#kArmBottomNeon)"
+          />
+          <path
+            d="M38 49 L71 80 C73 82 77 82 80 79 L49 46 Z"
+            fill="url(#kGlossSpecular)"
+            opacity="0.4"
+          />
 
-          <circle cx="42" cy="89" r="2.2" fill="#60a5fa" />
-          <path d="M39 87 L45 91 M45 87 L39 91" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" />
-
-          <circle cx="38" cy="97" r="2.2" fill="#38bdf8" />
+          {/* Core Intersection Highlight Orb */}
+          <circle cx="40" cy="50" r="3.5" fill="#ffffff" filter="url(#kGlowFilter)" />
         </svg>
       )}
 
@@ -121,16 +129,14 @@ export const KitestKiteLogo: React.FC<{
 
       {showWordmark && (
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
-              KITEST
+          <div className="flex items-center gap-1">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none">
+              KITEST<span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">AI</span>
             </span>
           </div>
-          {showSlogan && (
-            <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.18em] text-slate-500 uppercase leading-tight mt-0.5">
-              BILIM • IMKON • KELAJAK
-            </span>
-          )}
+          <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase leading-tight mt-0.5">
+            Ta'lim platformasi
+          </span>
         </div>
       )}
     </div>
@@ -260,147 +266,148 @@ export const KitestSplashScreen: React.FC<{
   onFinish?: () => void;
 }> = ({ progress = 67, onFinish }) => {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#dbeafe] via-[#eff6ff] to-[#ffffff] px-6 select-none">
-      {/* Decorative Floating Kites */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Pink Kite Top-Left */}
-        <motion.div
-          animate={{ y: [-6, 6, -6], rotate: [-4, 4, -4] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-16 left-[12%] w-16 h-20 opacity-90"
-        >
-          <svg viewBox="0 0 60 80" className="w-full h-full">
-            <path d="M30 4 L10 32 L30 56 L50 32 Z" fill="#f472b6" />
-            <line x1="30" y1="4" x2="30" y2="56" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <line x1="10" y1="32" x2="50" y2="32" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <path d="M30 56 Q22 66 26 74 T18 80" stroke="#f472b6" strokeWidth="1.4" fill="none" />
-          </svg>
-        </motion.div>
-
-        {/* Green Kite Top-Right */}
-        <motion.div
-          animate={{ y: [6, -6, 6], rotate: [4, -4, 4] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-20 right-[14%] w-16 h-20 opacity-90"
-        >
-          <svg viewBox="0 0 60 80" className="w-full h-full">
-            <path d="M30 4 L10 32 L30 56 L50 32 Z" fill="#34d399" />
-            <line x1="30" y1="4" x2="30" y2="56" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <line x1="10" y1="32" x2="50" y2="32" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <path d="M30 56 Q36 66 32 74 T38 80" stroke="#34d399" strokeWidth="1.4" fill="none" />
-          </svg>
-        </motion.div>
-
-        {/* Purple Kite Bottom-Left */}
-        <motion.div
-          animate={{ y: [-8, 8, -8], rotate: [-5, 5, -5] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-          className="absolute bottom-28 left-[10%] w-14 h-18 opacity-85"
-        >
-          <svg viewBox="0 0 60 80" className="w-full h-full">
-            <path d="M30 4 L10 32 L30 56 L50 32 Z" fill="#a855f7" />
-            <line x1="30" y1="4" x2="30" y2="56" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <line x1="10" y1="32" x2="50" y2="32" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <path d="M30 56 Q24 66 27 74 T20 80" stroke="#a855f7" strokeWidth="1.4" fill="none" />
-          </svg>
-        </motion.div>
-
-        {/* Yellow Kite Bottom-Right */}
-        <motion.div
-          animate={{ y: [8, -8, 8], rotate: [5, -5, 5] }}
-          transition={{ duration: 6.2, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute bottom-32 right-[12%] w-14 h-18 opacity-85"
-        >
-          <svg viewBox="0 0 60 80" className="w-full h-full">
-            <path d="M30 4 L10 32 L30 56 L50 32 Z" fill="#fbbf24" />
-            <line x1="30" y1="4" x2="30" y2="56" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <line x1="10" y1="32" x2="50" y2="32" stroke="#fff" strokeWidth="1.4" opacity="0.8" />
-            <path d="M30 56 Q36 66 32 74 T38 80" stroke="#fbbf24" strokeWidth="1.4" fill="none" />
-          </svg>
-        </motion.div>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-radial from-[#121c38] via-[#080d1e] to-[#04060d] px-6 select-none overflow-hidden">
+      {/* Background Starfield & Ambient Glows */}
+      <div className="absolute inset-0 pointer-events-none opacity-40">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15%" cy="20%" r="1.5" fill="#38bdf8" opacity="0.8" />
+          <circle cx="80%" cy="15%" r="2" fill="#c084fc" opacity="0.8" />
+          <circle cx="85%" cy="80%" r="1.5" fill="#fbbf24" opacity="0.6" />
+          <circle cx="20%" cy="75%" r="2" fill="#34d399" opacity="0.7" />
+          <circle cx="50%" cy="90%" r="1" fill="#fff" opacity="0.5" />
+        </svg>
       </div>
 
-      {/* Center Animated 3D Kite Vortex Emblem */}
-      <div className="relative flex items-center justify-center mb-8">
-        {/* Soft Glowing Backlight Halo */}
-        <div className="absolute w-64 h-64 rounded-full bg-sky-300/40 blur-3xl animate-pulse" />
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
 
-        {/* Orbit Rings with Glass Sheen */}
+      {/* Center 3D K Emblem with 4 Orbital Pills (Image 4) */}
+      <div className="relative w-80 h-80 flex items-center justify-center mb-6">
+        {/* Orbital Ellipse Rings */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-          className="absolute w-52 h-52 rounded-full border-2 border-dashed border-sky-300/50"
+          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+          className="absolute w-72 h-72 rounded-full border border-cyan-500/30 border-dashed"
         />
-
         <motion.div
           animate={{ rotate: -360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-          className="absolute w-44 h-28 rounded-full border border-sky-400/60 shadow-[0_0_20px_rgba(56,189,248,0.4)]"
-          style={{ transform: 'rotate(-20deg)' }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+          className="absolute w-60 h-40 rounded-full border border-purple-500/40 shadow-[0_0_24px_rgba(168,85,247,0.3)]"
+          style={{ transform: 'rotate(-25deg)' }}
         />
 
-        {/* 3D Cyan Curved Kite Vortex Blades */}
+        {/* 4 Orbital Feature Badges (Matching Image 4) */}
+        {/* 1. Top-Left: Online darslar */}
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          className="relative z-10 w-36 h-36 flex items-center justify-center drop-shadow-[0_12px_28px_rgba(37,99,235,0.4)]"
+          animate={{ y: [-4, 4, -4] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-1 -left-4 py-1.5 px-3 rounded-full bg-[#0b1329]/90 border border-sky-400/50 text-sky-300 text-xs font-black shadow-[0_0_16px_rgba(56,189,248,0.35)] flex items-center gap-1.5 backdrop-blur-md"
         >
-          <svg viewBox="0 0 120 120" className="w-full h-full">
+          <span>🎓</span>
+          <span>Online darslar</span>
+        </motion.div>
+
+        {/* 2. Top-Right: Testlar */}
+        <motion.div
+          animate={{ y: [4, -4, 4] }}
+          transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+          className="absolute -top-1 -right-4 py-1.5 px-3 rounded-full bg-[#0b1329]/90 border border-purple-400/50 text-purple-300 text-xs font-black shadow-[0_0_16px_rgba(192,132,252,0.35)] flex items-center gap-1.5 backdrop-blur-md"
+        >
+          <span>☑️</span>
+          <span>Testlar</span>
+        </motion.div>
+
+        {/* 3. Bottom-Left: AI Chat */}
+        <motion.div
+          animate={{ y: [-3, 5, -3] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+          className="absolute -bottom-2 -left-2 py-1.5 px-3 rounded-full bg-[#0b1329]/90 border border-cyan-400/50 text-cyan-300 text-xs font-black shadow-[0_0_16px_rgba(6,182,212,0.35)] flex items-center gap-1.5 backdrop-blur-md"
+        >
+          <span>🤖</span>
+          <span>AI Chat</span>
+        </motion.div>
+
+        {/* 4. Bottom-Right: Sertifikat */}
+        <motion.div
+          animate={{ y: [4, -3, 4] }}
+          transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: 0.9 }}
+          className="absolute -bottom-2 -right-2 py-1.5 px-3 rounded-full bg-[#0b1329]/90 border border-amber-400/50 text-amber-300 text-xs font-black shadow-[0_0_16px_rgba(251,191,36,0.35)] flex items-center gap-1.5 backdrop-blur-md"
+        >
+          <span>🏆</span>
+          <span>Sertifikat</span>
+        </motion.div>
+
+        {/* Center 3D K Logo with Graduation Cap & Book */}
+        <motion.div
+          animate={{
+            scale: [0.98, 1.03, 0.98],
+            rotate: [-2, 2, -2],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          className="relative z-10 w-36 h-36 flex items-center justify-center drop-shadow-[0_0_32px_rgba(56,189,248,0.6)]"
+        >
+          <svg viewBox="0 0 120 120" className="w-full h-full" fill="none">
             <defs>
-              <linearGradient id="bladeGradTop" x1="60" y1="10" x2="95" y2="55" gradientUnits="userSpaceOnUse">
+              <linearGradient id="splashKStem" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="50%" stopColor="#0284c7" />
+                <stop offset="100%" stopColor="#1e3a8a" />
+              </linearGradient>
+              <linearGradient id="splashKTopArm" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#ec4899" />
+              </linearGradient>
+              <linearGradient id="splashKBotArm" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#06b6d4" />
                 <stop offset="100%" stopColor="#2563eb" />
               </linearGradient>
-              <linearGradient id="bladeGradLeft" x1="15" y1="60" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#60a5fa" />
-                <stop offset="100%" stopColor="#0284c7" />
+              <linearGradient id="goldCapGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#d97706" />
               </linearGradient>
-              <linearGradient id="bladeGradBottom" x1="60" y1="60" x2="85" y2="105" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#0ea5e9" />
-                <stop offset="100%" stopColor="#1e40af" />
-              </linearGradient>
-              <filter id="whiteGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#ffffff" floodOpacity="0.8" />
-              </filter>
             </defs>
 
-            {/* Top Blade */}
-            <path
-              d="M60 60 Q68 20 95 30 Q85 55 60 60 Z"
-              fill="url(#bladeGradTop)"
-              filter="url(#whiteGlow)"
-            />
-            {/* Left Blade */}
-            <path
-              d="M60 60 Q26 35 20 60 Q45 78 60 60 Z"
-              fill="url(#bladeGradLeft)"
-              filter="url(#whiteGlow)"
-            />
-            {/* Bottom Blade */}
-            <path
-              d="M60 60 Q62 98 88 88 Q78 68 60 60 Z"
-              fill="url(#bladeGradBottom)"
-              filter="url(#whiteGlow)"
-            />
-            {/* Center Core */}
-            <circle cx="60" cy="60" r="4" fill="#ffffff" />
+            {/* Graduation Cap on top of K */}
+            <path d="M60 12 L85 22 L60 32 L35 22 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+            <path d="M60 22 L78 29 L78 35 C78 40 60 45 60 45 C60 45 42 40 42 35 L42 29 Z" fill="#0f172a" />
+            <circle cx="60" cy="22" r="2.5" fill="url(#goldCapGrad)" />
+            <path d="M60 22 Q75 25 80 38" stroke="url(#goldCapGrad)" strokeWidth="1.5" fill="none" />
+            <circle cx="80" cy="38" r="2" fill="url(#goldCapGrad)" />
+
+            {/* 3D K Pillar */}
+            <rect x="28" y="32" width="16" height="58" rx="8" fill="url(#splashKStem)" stroke="#38bdf8" strokeWidth="1.2" />
+            <rect x="31" y="35" width="4" height="52" rx="2" fill="#fff" opacity="0.6" />
+
+            {/* Upper Arm (Magenta-Purple) */}
+            <path d="M46 58 L78 32 C82 28 88 29 91 33 C94 37 93 43 89 47 L58 68 Z" fill="url(#splashKTopArm)" />
+            {/* Lower Arm (Cyan-Blue) */}
+            <path d="M48 64 L80 96 C84 100 90 99 94 95 C98 91 97 85 93 81 L60 52 Z" fill="url(#splashKBotArm)" />
+
+            {/* Open Book Base under K */}
+            <path d="M30 96 Q60 92 60 102 Q60 92 90 96 L88 106 Q60 102 60 110 Q60 102 32 106 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="1" />
+            <path d="M34 98 Q60 95 60 104 Q60 95 86 98" stroke="#fff" strokeWidth="1.2" fill="none" opacity="0.8" />
           </svg>
         </motion.div>
       </div>
 
-      {/* Loading Text & Percentage matching k3BbK.jpg */}
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1e3a8a] tracking-tight mb-2">
-        Yuklanmoqda...
-      </h2>
+      {/* Brand Title */}
+      <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1 flex items-center gap-1.5">
+        <span>KITEST</span>
+        <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">AI</span>
+      </h1>
+      <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-4">
+        Ta'lim platformasi
+      </p>
 
-      <div className="text-lg sm:text-xl font-bold text-[#2563eb] mb-5 font-mono">
-        {Math.round(progress)}%
+      {/* Loading Status & Percent */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-bold text-slate-300">Yuklanmoqda...</span>
+        <span className="text-sm font-mono font-black text-cyan-400">{Math.round(progress)}%</span>
       </div>
 
-      {/* Rounded Glow Progress Bar */}
-      <div className="w-64 sm:w-80 h-2.5 rounded-full bg-blue-100/80 p-0.5 border border-sky-200/60 shadow-inner overflow-hidden">
+      {/* Glowing Neon Cosmic Progress Bar */}
+      <div className="w-64 sm:w-80 h-2.5 rounded-full bg-[#0d152c] p-0.5 border border-indigo-500/40 shadow-[0_0_16px_rgba(79,70,229,0.3)] overflow-hidden">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-blue-600 shadow-[0_0_12px_rgba(56,189,248,0.7)]"
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]"
           initial={{ width: '0%' }}
           animate={{ width: `${Math.max(5, Math.min(100, progress))}%` }}
           transition={{ duration: 0.3, ease: 'easeOut' }}

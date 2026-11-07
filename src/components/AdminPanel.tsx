@@ -108,7 +108,8 @@ type AdminSectionTab =
   | 'users'
   | 'tests'
   | 'contests'
-  | 'platform_controls';
+  | 'platform_controls'
+  | 'external_links';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   currentUser,
@@ -136,7 +137,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Platform Media & Video Management State ("Admin panelga video va rasmlarni almashtirish qo'sh")
   const [adminEntranceVideoUrl, setAdminEntranceVideoUrl] = useState<string>('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  const [adminBannerImageUrl, setAdminBannerImageUrl] = useState<string>('/public/assets/aistudio/Document_18_1_d651c584.jpg');
+  const [adminBannerImageUrl, setAdminBannerImageUrl] = useState<string>('/assets/aistudio/Document_18_1_d651c584.jpg');
   const [adminBrandingLogoUrl, setAdminBrandingLogoUrl] = useState<string>('');
   const [adminYoutubeChannelUrl, setAdminYoutubeChannelUrl] = useState<string>(OFFICIAL_YOUTUBE_URL);
   const [mediaSaveStatus, setMediaSaveStatus] = useState<string | null>(null);
@@ -283,6 +284,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [notifBroadcastTab, setNotifBroadcastTab] = useState<string>('contests');
   const [isSendingNotif, setIsSendingNotif] = useState<boolean>(false);
   const [notifStatusMsg, setNotifStatusMsg] = useState<string | null>(null);
+
+  // External Links state ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
+  const [extKitestGramUrl, setExtKitestGramUrl] = useState<string>('https://t.me/kitest_uz');
+  const [extRaqamliUstozUrl, setExtRaqamliUstozUrl] = useState<string>('https://raqamliustoz.uz');
+  const [extKodYozishUrl, setExtKodYozishUrl] = useState<string>('');
+  const [extYoutubeUrl, setExtYoutubeUrl] = useState<string>('https://youtube.com/@kitest_uz');
+  const [extGithubUrl, setExtGithubUrl] = useState<string>('https://github.com/kitest-platform');
+  const [isSavingExtLinks, setIsSavingExtLinks] = useState<boolean>(false);
+  const [extLinksMsg, setExtLinksMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/external-links')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.externalLinks) {
+          if (data.externalLinks.kitestGramUrl) setExtKitestGramUrl(data.externalLinks.kitestGramUrl);
+          if (data.externalLinks.raqamliUstozUrl) setExtRaqamliUstozUrl(data.externalLinks.raqamliUstozUrl);
+          if (data.externalLinks.kodYozishUrl !== undefined) setExtKodYozishUrl(data.externalLinks.kodYozishUrl);
+          if (data.externalLinks.youtubeUrl) setExtYoutubeUrl(data.externalLinks.youtubeUrl);
+          if (data.externalLinks.githubUrl) setExtGithubUrl(data.externalLinks.githubUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveExternalLinks = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingExtLinks(true);
+    setExtLinksMsg(null);
+    try {
+      const payload = {
+        kitestGramUrl: extKitestGramUrl.trim(),
+        raqamliUstozUrl: extRaqamliUstozUrl.trim(),
+        kodYozishUrl: extKodYozishUrl.trim(),
+        youtubeUrl: extYoutubeUrl.trim(),
+        githubUrl: extGithubUrl.trim(),
+      };
+      const res = await fetch('/api/admin/external-links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-passcode': ADMIN_PASSCODE_VALUE,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        localStorage.setItem('kitest_external_links', JSON.stringify(payload));
+        setExtLinksMsg("⚡ Barcha tashqi havolalar muvaffaqiyatli saqlandi va platforma bo'ylab yangilandi!");
+        window.dispatchEvent(new CustomEvent('kitest:external_links_updated', { detail: payload }));
+      } else {
+        setExtLinksMsg("Xatolik yuz berdi. Qayta urinib ko'ring.");
+      }
+    } catch {
+      setExtLinksMsg("Server bilan bog'lanishda xatolik.");
+    } finally {
+      setIsSavingExtLinks(false);
+    }
+  };
 
   const fetchCloudStatus = async () => {
     try {
@@ -1824,6 +1884,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveSection('external_links')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+            activeSection === 'external_links'
+              ? 'bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-sky-500/30 ring-1 ring-sky-300'
+              : 'bg-slate-900 text-sky-300 hover:text-white border border-sky-500/40'
+          }`}
+        >
+          <Send className="w-4 h-4 text-sky-400" />
+          <span>⚡ Tashqi Havolalar (Telegram, Raqamli Ustoz, IDE)</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('monitor')}
           className={`py-2.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeSection === 'monitor'
@@ -2471,8 +2543,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-400"
                   >
                     <option value="all">🌟 BARCHA FOYDALANUVCHILARGA ({users.length} ta)</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
+                    {users.map((u, uIdx) => (
+                      <option key={`grant_u_${u.id}_${uIdx}`} value={u.id}>
                         {u.name} (@{u.username}) — ⚡ {u.totalScore}b · 🪙 {u.coins || 0}c · ⭐ {u.stars || 0}
                       </option>
                     ))}
@@ -3355,7 +3427,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     type="text"
                     value={adminBannerImageUrl}
                     onChange={(e) => setAdminBannerImageUrl(e.target.value)}
-                    placeholder="/public/assets/aistudio/Document_18_1_d651c584.jpg"
+                    placeholder="/assets/aistudio/Document_18_1_d651c584.jpg"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-sky-400"
                   />
                 </div>
@@ -3363,21 +3435,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_1_d651c584.jpg')}
+                    onClick={() => setAdminBannerImageUrl('/assets/aistudio/Document_18_1_d651c584.jpg')}
                     className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
                   >
                     1-Hujjat (Qo'lyozma)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_2_0b71b289.jpg')}
+                    onClick={() => setAdminBannerImageUrl('/assets/aistudio/Document_18_2_0b71b289.jpg')}
                     className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
                   >
                     2-Hujjat (Sxema)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAdminBannerImageUrl('/public/assets/aistudio/Document_18_3_2dc70583.jpg')}
+                    onClick={() => setAdminBannerImageUrl('/assets/aistudio/Document_18_3_2dc70583.jpg')}
                     className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-sky-300 cursor-pointer"
                   >
                     3-Hujjat (Quiz/IDE)
@@ -3599,6 +3671,206 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SECTION: TASHQI HAVOLALAR & INTEGRATSIYALAR               */}
+      {/* ========================================================= */}
+      {activeSection === 'external_links' && (
+        <div className="space-y-6">
+          <form
+            onSubmit={handleSaveExternalLinks}
+            className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border-2 border-sky-500/50 space-y-6 shadow-2xl"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-black uppercase tracking-wider mb-2">
+                  <Send className="w-3.5 h-3.5 text-sky-400" />
+                  <span>⚡ TASHQI HAVOLALAR VA INTEGRATSIYALAR BOSHQARUVI</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Telegram, Raqamli Ustoz, IDE va Ijtimoiy Tarmoq Havolalari
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                  Foydalanuvchilar yuqori paneldagi [KitestGram], [Raqamli Ustoz] va menyudagi [Kod Yozish] tugmalarini bosganda ochiladigan manzillarni ushbu joydan kiriting va saqlang.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingExtLinks}
+                className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-sky-500/25 flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingExtLinks ? 'Saqlanmoqda...' : '💾 Havolalarni Saqlash (Cloud)'}</span>
+              </button>
+            </div>
+
+            {extLinksMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500 text-xs text-emerald-200 font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{extLinksMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* 1. Telegram / KitestGram URL */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-sky-300 flex items-center gap-2">
+                    <Send className="w-4 h-4 text-sky-400" />
+                    <span>✈️ KitestGram / Telegram Havolasi</span>
+                  </label>
+                  {extKitestGramUrl && (
+                    <a
+                      href={extKitestGramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-sky-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extKitestGramUrl}
+                  onChange={(e) => setExtKitestGramUrl(e.target.value)}
+                  placeholder="https://t.me/kitest_uz"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Yuqori paneldagi <b>[KitestGram]</b> tugmasi bosilganda ushbu havola yangi oynada ochiladi.
+                </p>
+              </div>
+
+              {/* 2. Raqamli Ustoz URL */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-indigo-300 flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-indigo-400" />
+                    <span>🎓 Raqamli Ustoz Havolasi (Google / Web)</span>
+                  </label>
+                  {extRaqamliUstozUrl && (
+                    <a
+                      href={extRaqamliUstozUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extRaqamliUstozUrl}
+                  onChange={(e) => setExtRaqamliUstozUrl(e.target.value)}
+                  placeholder="https://raqamliustoz.uz yoki Google Sites manzili"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Yuqori paneldagi <b>[Raqamli Ustoz]</b> tugmasi bosilganda ochiladigan veb yoki Google Sites manzili.
+                </p>
+              </div>
+
+              {/* 3. Kod Yozish & IDE URL */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-cyan-400" />
+                    <span>💻 Kod Yozish & IDE Tashqi Havolasi (Ixtiyoriy)</span>
+                  </label>
+                  {extKodYozishUrl && (
+                    <a
+                      href={extKodYozishUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extKodYozishUrl}
+                  onChange={(e) => setExtKodYozishUrl(e.target.value)}
+                  placeholder="Masalan: https://colab.research.google.com yoki https://replit.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Bo'sh qoldirilsa platformaning ichki Code Studio muhiti ochiladi; havola kiritilsa o'sha tashqi IDE ga yo'naltiradi.
+                </p>
+              </div>
+
+              {/* 4. YouTube Rasmiy Kanal */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-rose-300 flex items-center gap-2">
+                    <Youtube className="w-4 h-4 text-rose-500" />
+                    <span>▶️ YouTube Rasmiy Kanal Havolasi</span>
+                  </label>
+                  {extYoutubeUrl && (
+                    <a
+                      href={extYoutubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-rose-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extYoutubeUrl}
+                  onChange={(e) => setExtYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/@kitest_uz"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Platformaning pastki footer qismidagi YouTube havolasi.
+                </p>
+              </div>
+
+              {/* 5. GitHub Repozitoriy */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-purple-300 flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4 text-purple-400" />
+                    <span>🐙 GitHub Loyiha Havolasi</span>
+                  </label>
+                  {extGithubUrl && (
+                    <a
+                      href={extGithubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-purple-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extGithubUrl}
+                  onChange={(e) => setExtGithubUrl(e.target.value)}
+                  placeholder="https://github.com/kitest-platform"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Platformaning pastki footer qismidagi GitHub havolasi.
+                </p>
+              </div>
+            </div>
+          </form>
         </div>
       )}
 
@@ -3846,8 +4118,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setCertRecipientId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-500"
                   >
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id} className="bg-slate-900">
+                    {users.map((u, uIdx) => (
+                      <option key={`cert_u_${u.id}_${uIdx}`} value={u.id} className="bg-slate-900">
                         {u.name} (@{u.username}) — {u.totalScore} ball
                       </option>
                     ))}
@@ -4732,11 +5004,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     ta tanlandi)
                   </label>
                   <div className="max-h-40 overflow-y-auto space-y-1.5 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    {tests.map((t) => {
+                    {tests.map((t, tIdx) => {
                       const checked = selectedTestIds.includes(t.id);
                       return (
                         <label
-                          key={t.id}
+                          key={`contest_t_${t.id}_${tIdx}`}
                           className="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer hover:text-white py-1"
                         >
                           <input
@@ -4856,8 +5128,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 onChange={(e) => setScoreTargetUserId(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
               >
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
+                {users.map((u, uIdx) => (
+                  <option key={`score_target_u_${u.id}_${uIdx}`} value={u.id}>
                     {u.name} (@{u.username}) — Hozirgi: {u.totalScore} ball
                   </option>
                 ))}
@@ -5348,7 +5620,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 required
                 value={mediaFormUrl}
                 onChange={(e) => setMediaFormUrl(e.target.value)}
-                placeholder="https://... yoki /public/assets/..."
+                placeholder="https://... yoki /assets/..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono"
               />
             </div>

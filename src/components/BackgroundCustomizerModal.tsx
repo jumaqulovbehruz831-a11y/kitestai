@@ -56,8 +56,8 @@ export interface CustomBackgroundConfig {
 
 export const DEFAULT_BG_CONFIG: CustomBackgroundConfig = {
   mode: 'preset',
-  presetId: 'clean-light',
-  solidColor: '#ffffff',
+  presetId: 'default-dark',
+  solidColor: '#070b14',
   gradientStart: '#f8fafc',
   gradientEnd: '#f1f5f9',
   gradientAngle: 135,

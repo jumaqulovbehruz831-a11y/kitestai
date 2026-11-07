@@ -874,8 +874,8 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
                         className="flex-1 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white"
                       >
                         <option value="">— Ishtirokchini tanlang —</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
+                        {users.map((u, uIdx) => (
+                          <option key={`lw_u_${u.id}_${uIdx}`} value={u.id}>
                             {u.name} (@{u.username}){' '}
                             {u.wheelSpinAllowed
                               ? `[✅ ${u.wheelSpinsLeft || 1} marta]`

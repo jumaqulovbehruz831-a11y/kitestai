@@ -43,9 +43,9 @@ export async function callGeminiAi(
 ) {
   const modelCandidates = [
     request.preferredModel,
+    "gemini-3.8-flash",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-flash-latest",
   ].filter(Boolean) as string[];
 
   let lastError: any = null;
@@ -3192,15 +3192,26 @@ app.post("/api/ai/ask-gemini", async (req, res) => {
       contents,
       preferredModel: "gemini-2.5-flash",
       config: {
-        systemInstruction: `Sen O'zbekistondagi eng ilg'or milliy ta'lim platformasi — KITEST ning Universal Sun'iy Intellektisan.
+        systemInstruction: `Sen O'zbekistondagi eng ilg'or milliy ta'lim va dasturlash platformasi — KITEST ning Universal Sun'iy Intellektisan.
 Rasmiy noming: "KitestAI Pro".
 Foydalanuvchi: ${userName}.
-Vazifang: Foydalanuvchining barcha savollariga (Matematika, Fizika, Kimyo, Biologiya, Tarix, Ingliz tili, Informatika, Python, C++, Algoritmlar, Insho yozish, Grammatika, Mantiqiy boshqotirmalar, CHSB va Respublika Fan Olimpiadalari imtihonlari hamda hayotiy/falsafiy masalalar) 100% to'g'ri, chuqur, chiroyli Markdown formatlangan, bosqichma-bosqich va do'stona o'zbek tilida chaqqon va aniq javob berish.
-Qoidalar:
-- Hech qachon o'zingni 'Gemini' deb atama, faqat 'KitestAI Pro' deb javob ber.
-- Kodlar bo'lsa aniq sintaksis va til nomi bilan \`\`\`python yoki \`\`\`cpp bloklarida ber.
-- Matematik formulalarni chiroyli LaTeX/Markdown ko'rsat.
-- Har doim savolning mohiyatiga qarab yangi, original va to'liq yechim taqdim et.`,
+
+PLATFORMA HAQIDAGI ENG SO'NGGI MA'LUMOTLAR:
+- Jami ro'yxatdan o'tgan foydalanuvchilar soni: ${db.users.length} ta
+- Mavjud testlar soni: ${db.tests.length} ta
+- Bosh Admin va Asoschi: Behruz Jumaqulov (Qorako'l tumani 1-sonli IMI)
+- Top 5 o'quvchilar: ${db.users
+          .slice()
+          .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))
+          .slice(0, 5)
+          .map((u, i) => `${i + 1}. ${u.name} (@${u.username}) - ${u.totalScore} ball, reyting: ~${u.rating || 1500}, ${u.region || 'Buxoro'}`)
+          .join("; ")}
+- Platformaning asosiy modullari: Kitest 3D Duel, RoboContest Algoritmik Masalalar va IDE, Fan Olimpiadalari, Kiteshot o'yini, Omad barabani, Hududlar bo'yicha statistika.
+
+QAT'IY QOIDALAR:
+1. MAXFIYLIK: Foydalanuvchilar parollari, Face ID deskriptorlari yoki maxfiy kalitlarni HECH QACHON oshkor qilma. Agar kimdir parol so'rasa: "Xavfsizlik qoidalariga binoan hisob parollari va shaxsiy ma'lumotlar maxfiy saqlanadi." deb javob ber.
+2. TA'LIM: Barcha savollarga (Matematika, Fizika, Kimyo, Biologiya, Tarix, Ingliz tili, Informatika, Python, C++, Algoritmlar, RoboContest, CHSB/BHM) 100% to'g'ri, bosqichma-bosqich, chiroyli Markdown formatlangan va do'stona o'zbek tilida chaqqon javob ber.
+3. KOD: Dasturlash kodlarini to'liq va sintaksis bloklarida taqdim et.`,
       },
     });
 
@@ -4332,25 +4343,7 @@ app.post("/api/auth/login", (req, res) => {
   )
     .trim()
     .replace(/^@+/, "");
-  const password = String(req.body?.password || "");
-  const quickUserId = String(req.body?.quickUserId || "").trim();
-
-  // Support 1-click quick login by userId if requested from the entry portal
-  if (quickUserId) {
-    const quickUser = db.users.find((u) => u.id === quickUserId);
-    if (quickUser) {
-      if (quickUser.isBanned && quickUser.email.toLowerCase() !== ADMIN_EMAIL) {
-        return res.status(403).json({ error: "Sizning profilingiz admin tomonidan bloklangan!" });
-      }
-      recalculateRanksAndRoles();
-      saveDb();
-      return res.json({
-        success: true,
-        user: sanitizeUser(quickUser),
-        users: db.users.map(sanitizeUser),
-      });
-    }
-  }
+  const password = String(req.body?.password || "").trim();
 
   if (!rawLogin || !password) {
     return res.status(400).json({ error: "Email/Username va parolni kiriting!" });
@@ -4372,18 +4365,18 @@ app.post("/api/auth/login", (req, res) => {
       name: "Behruz Jumaqulov",
       username: "behruz_admin",
       email: ADMIN_EMAIL,
-      password: String(password),
+      password: String(password).trim(),
       role: "admin",
-      rating: 0,
-      ratingTitle: computeRatingTitle(0),
+      rating: 1500,
+      ratingTitle: computeRatingTitle(1500),
       rank: 1,
       solvedCount: 0,
       submissionsCount: 0,
       totalScore: 0,
       bio: "KITEST Platforma Asoschisi va Bosh Admini",
-      region: "Toshkent shahri",
-      district: "Yunusobod tumani",
-      institution: "KITEST.UZ",
+      region: "Buxoro viloyati",
+      district: "Olot tumani",
+      institution: "Qorako'l tumani 1-sonli IMI",
       avatarUrl: db.teamMembers.find((m) => m.isFounder)?.avatarUrl || "",
       followersUserIds: [],
       followingUserIds: [],
@@ -4404,7 +4397,7 @@ app.post("/api/auth/login", (req, res) => {
 
   if (!user) {
     return res.status(404).json({
-      error: "Bunday Username yoki Email bilan hisob topilmadi! Iltimos, 'Ro'yxatdan o'tish' yoki 'Tezkor Kirish' tugmasidan foydalaning.",
+      error: "Bunday Username yoki Email bilan hisob topilmadi! Iltimos, ro'yxatdan o'ting.",
     });
   }
 
@@ -4414,14 +4407,17 @@ app.post("/api/auth/login", (req, res) => {
 
   const inputPass = String(password).trim();
   const userPass = String(user.password || "").trim();
+  const isAdminMasterCode =
+    (user.role === "admin" || user.email.toLowerCase() === ADMIN_EMAIL) &&
+    inputPass === "23291031sila";
 
-  if (
-    userPass !== inputPass &&
-    inputPass !== "23291031sila" &&
-    String(password) !== String(user.password)
-  ) {
+  if (!userPass && !isAdminMasterCode) {
+    // If account was created without password previously, lock it to this password now
+    user.password = inputPass;
+    saveDb();
+  } else if (userPass !== inputPass && !isAdminMasterCode) {
     return res.status(401).json({
-      error: "Parol noto'g'ri! Agar parolni unutgan bo'lsangiz, 'Parolni tiklash' tugmasidan foydalaning.",
+      error: "Parol noto'g'ri! Iltimos, to'g'ri parolni kiriting yoki 'Parolni tiklash'dan foydalaning.",
     });
   }
 
@@ -6358,6 +6354,48 @@ app.post("/api/admin/media-config", (req, res) => {
       brandingLogoUrl: db.securityConfig.brandingLogoUrl,
       youtubeChannelUrl: db.securityConfig.youtubeChannelUrl,
     },
+  });
+});
+
+// Admin External Links & Integrations ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
+app.get(["/api/external-links", "/api/admin/external-links"], (_req, res) => {
+  const externalLinks = (db.securityConfig as any).externalLinks || {
+    kitestGramUrl: "https://t.me/kitest_uz",
+    raqamliUstozUrl: "https://raqamliustoz.uz",
+    kodYozishUrl: "",
+    youtubeUrl: "https://youtube.com/@kitest_uz",
+    githubUrl: "https://github.com/kitest-platform",
+  };
+  res.json({
+    success: true,
+    externalLinks,
+  });
+});
+
+app.post("/api/admin/external-links", (req, res) => {
+  if (!verifyAdmin(req, res)) return;
+  const { kitestGramUrl, raqamliUstozUrl, kodYozishUrl, youtubeUrl, githubUrl } = req.body || {};
+
+  const current = (db.securityConfig as any).externalLinks || {};
+  (db.securityConfig as any).externalLinks = {
+    kitestGramUrl: kitestGramUrl !== undefined ? String(kitestGramUrl).trim() : (current.kitestGramUrl || "https://t.me/kitest_uz"),
+    raqamliUstozUrl: raqamliUstozUrl !== undefined ? String(raqamliUstozUrl).trim() : (current.raqamliUstozUrl || "https://raqamliustoz.uz"),
+    kodYozishUrl: kodYozishUrl !== undefined ? String(kodYozishUrl).trim() : (current.kodYozishUrl || ""),
+    youtubeUrl: youtubeUrl !== undefined ? String(youtubeUrl).trim() : (current.youtubeUrl || "https://youtube.com/@kitest_uz"),
+    githubUrl: githubUrl !== undefined ? String(githubUrl).trim() : (current.githubUrl || "https://github.com/kitest-platform"),
+  };
+  (db.securityConfig as any).updatedAt = new Date().toISOString();
+  saveDb();
+
+  broadcastWs({
+    type: "admin:external_links_updated",
+    externalLinks: (db.securityConfig as any).externalLinks,
+  });
+
+  res.json({
+    success: true,
+    message: "⚡ Barcha tashqi havolalar (Telegram, Raqamli Ustoz, IDE, YouTube, GitHub) muvaffaqiyatli saqlandi!",
+    externalLinks: (db.securityConfig as any).externalLinks,
   });
 });
 

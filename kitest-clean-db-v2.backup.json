@@ -562,7 +562,14 @@
   },
   "securityConfig": {
     "screenshotProtectionEnabled": true,
-    "updatedAt": "2026-10-01T09:43:46.715Z"
+    "updatedAt": "2026-11-06T10:44:10.218Z",
+    "externalLinks": {
+      "kitestGramUrl": "https://t.me/kitest_uz",
+      "raqamliUstozUrl": "https://raqamliustoz.uz",
+      "kodYozishUrl": "",
+      "youtubeUrl": "https://youtube.com/@kitest_uz",
+      "githubUrl": "https://github.com/kitest-platform"
+    }
   },
   "studyPlans": [],
   "algorithms": [],
@@ -737,5 +744,54 @@
       "readBy": []
     }
   ],
-  "topEntranceVideoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+  "topEntranceVideoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+  "codingConfig": {
+    "pythonReward": 5,
+    "cppReward": 5,
+    "jsReward": 5,
+    "htmlReward": 5,
+    "olimpiadaReward": 20,
+    "dailyMaxScore": 100,
+    "awardCoinsBonus": 10,
+    "digitalMentorExternalUrl": "https://sites.google.com/view/kitest-dasturlash",
+    "updatedAt": "2026-11-06T10:43:24.850Z"
+  },
+  "mediaItems": [
+    {
+      "id": "media_video_1",
+      "title": "KITEST Rasmiy Kirish & Dars Videosi",
+      "type": "video",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "category": "entrance_video",
+      "description": "Bosh sahifadagi kirish va tanishtiruv videosi",
+      "createdAt": "2026-11-06T10:43:24.850Z"
+    },
+    {
+      "id": "media_banner_1",
+      "title": "Respublika Olimpiada Bosh Banneri",
+      "type": "image",
+      "url": "/public/assets/aistudio/Document_18_1_d651c584.jpg",
+      "category": "banner",
+      "description": "CHSB va Fan Olimpiadasi bosh banner rasmi",
+      "createdAt": "2026-11-06T10:43:24.850Z"
+    },
+    {
+      "id": "media_banner_2",
+      "title": "Interaktiv Quiz & Ta'lim Sxemasi",
+      "type": "image",
+      "url": "/public/assets/aistudio/Document_18_2_0b71b289.jpg",
+      "category": "showcase",
+      "description": "O'quvchi va ustoz interaktiv aloqa arxitekturasi",
+      "createdAt": "2026-11-06T10:43:24.850Z"
+    },
+    {
+      "id": "media_banner_3",
+      "title": "Dasturlash Poligoni & IDE Banneri",
+      "type": "image",
+      "url": "/public/assets/aistudio/Document_18_3_2dc70583.jpg",
+      "category": "olympiad",
+      "description": "Python, C++ va Algoritmlar bo'yicha ko'rgazma",
+      "createdAt": "2026-11-06T10:43:24.850Z"
+    }
+  ]
 }

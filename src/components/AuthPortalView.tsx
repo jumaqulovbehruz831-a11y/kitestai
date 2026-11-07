@@ -284,37 +284,14 @@ export const AuthPortalView: React.FC<AuthPortalViewProps> = ({
     e.target.value = '';
   };
 
-  // 1-Click Quick Login with an existing account from recentUsers
-  const handleQuickAccountLogin = async (targetUser: User) => {
+  // Select existing account from list -> MUST enter password!
+  const handleQuickAccountLogin = (targetUser: User) => {
     setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quickUserId: targetUser.id,
-          login: targetUser.username || targetUser.email,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        playKitestSound('success', soundEnabled);
-        onAuthSuccess(
-          data.user,
-          Array.isArray(data.users) ? data.users : undefined
-        );
-      } else {
-        setEmailOrUsername(targetUser.username || targetUser.email);
-        setMode('login');
-        loginInputRef.current?.focus();
-      }
-    } catch {
-      setEmailOrUsername(targetUser.username || targetUser.email);
-      setMode('login');
-    } finally {
-      setLoading(false);
-    }
+    setEmailOrUsername(targetUser.username || targetUser.email || '');
+    setPassword('');
+    setMode('login');
+    loginInputRef.current?.focus();
+    playKitestSound('click', soundEnabled);
   };
 
   // 1-Click Incognito / Accountless Entry ("Accountsiz kirishni ikiʼonikto kirishdek boladi")

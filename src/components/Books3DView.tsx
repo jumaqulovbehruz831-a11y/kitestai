@@ -308,8 +308,8 @@ export const Books3DView: React.FC<Books3DViewProps> = ({
                   onChange={(e) => setCoverColor(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
                 >
-                  {COVER_THEMES.map((t) => (
-                    <option key={t.id} value={t.id}>
+                  {COVER_THEMES.map((t, idx) => (
+                    <option key={`cover_thm_${t.id}_${idx}`} value={t.id}>
                       {t.label}
                     </option>
                   ))}

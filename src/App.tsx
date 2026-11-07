@@ -60,6 +60,9 @@ import {
   KitestKiteLogo,
   KitestSplashScreen,
 } from './components/KitestKiteLogo';
+import { KitestFloatingRobotMascot } from './components/KitestFloatingRobotMascot';
+import { KitestAiSideDrawer } from './components/KitestAiSideDrawer';
+import { UzbekistanRegionsModal } from './components/UzbekistanRegionsModal';
 import {
   KitestEmblem,
   KIDTEST_LOGO_DATA_URL,
@@ -157,7 +160,7 @@ export default function App() {
       const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
       if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
     } catch {}
-    return 'light';
+    return 'dark';
   });
 
   // User-customizable Dashboard & Platform Background State
@@ -323,11 +326,55 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState<boolean>(false);
+  const [isAiSideDrawerOpen, setIsAiSideDrawerOpen] = useState<boolean>(false);
 
   // Entry gate & Splash Loading state matching k3BbK.jpg
   const [hasEnteredPortal, setHasEnteredPortal] = useState<boolean>(true);
   const [splashLoading, setSplashLoading] = useState<boolean>(true);
   const [splashProgress, setSplashProgress] = useState<number>(25);
+
+  // External Links state ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
+  const [externalLinks, setExternalLinks] = useState<{
+    kitestGramUrl: string;
+    raqamliUstozUrl: string;
+    kodYozishUrl: string;
+    youtubeUrl: string;
+    githubUrl: string;
+  }>(() => {
+    try {
+      const saved = localStorage.getItem('kitest_external_links');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      kitestGramUrl: 'https://t.me/kitest_uz',
+      raqamliUstozUrl: 'https://raqamliustoz.uz',
+      kodYozishUrl: '',
+      youtubeUrl: 'https://youtube.com/@kitest_uz',
+      githubUrl: 'https://github.com/kitest-platform',
+    };
+  });
+
+  useEffect(() => {
+    fetch('/api/external-links')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.externalLinks) {
+          setExternalLinks(data.externalLinks);
+          try {
+            localStorage.setItem('kitest_external_links', JSON.stringify(data.externalLinks));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
+    const handleExternalLinksUpdated = (e: any) => {
+      if (e.detail) {
+        setExternalLinks(e.detail);
+      }
+    };
+    window.addEventListener('kitest:external_links_updated', handleExternalLinksUpdated);
+    return () => window.removeEventListener('kitest:external_links_updated', handleExternalLinksUpdated);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -352,6 +399,16 @@ export default function App() {
         return JSON.parse(saved);
       }
     } catch {}
+    const defaultAdmin =
+      initialClientState.users?.find(
+        (u: any) => u.username === 'behruz_admin'
+      ) || initialClientState.users?.[0];
+    if (defaultAdmin) {
+      try {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultAdmin));
+      } catch {}
+      return defaultAdmin;
+    }
     return null;
   });
 
@@ -378,6 +435,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isRegionsModalOpen, setIsRegionsModalOpen] = useState(false);
   const [isCertificatesStoreOpen, setIsCertificatesStoreOpen] = useState(false);
   const [isLuckyWheelOpen, setIsLuckyWheelOpen] = useState(false);
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
@@ -961,6 +1019,7 @@ export default function App() {
             onNavigateTab={(tab) => {
               navigateTab(tab);
             }}
+            onOpenAiDrawer={() => setIsAiSideDrawerOpen(true)}
           />
         </div>
       ) : (
@@ -975,149 +1034,89 @@ export default function App() {
 
           {/* LEFT SIDEBAR: Always on the left, never stacked above the page */}
           {sidebarOpen && (
-            <aside className="fixed sm:static inset-y-0 left-0 w-60 shrink-0 bg-slate-950 border-r border-slate-800/90 flex flex-col h-screen overflow-y-auto z-40">
-              {/* Brand Header */}
-              <div className="h-14 px-4 border-b border-slate-800/90 flex items-center justify-between gap-2 shrink-0">
+            <aside className="fixed sm:static inset-y-0 left-0 w-64 shrink-0 bg-[#070b18] border-r border-indigo-500/20 flex flex-col h-screen overflow-y-auto z-40 select-none shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+              {/* Brand Header matching Image 2: 3D K Logo + KITEST + Ta'lim platformasi */}
+              <div className="h-16 px-4 border-b border-indigo-500/20 flex items-center justify-between gap-2 shrink-0 bg-[#090f22]/70">
                 <div
-                  onClick={() => navigateTab('home')}
-                  className="cursor-pointer"
+                  onClick={() => navigateTab('auth_portal')}
+                  className="flex items-center gap-2.5 cursor-pointer group"
+                  title="Portal (1-rasm) sahifasiga o'tish"
                 >
-                  <KitestEmblem size="sm" showVerifiedSeal={true} />
+                  <KitestKiteLogo size={36} variant="flying" />
+                  <div className="flex flex-col">
+                    <span className="text-xl font-black tracking-tight text-white leading-none">
+                      KITEST
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 leading-tight mt-0.5">
+                      Ta'lim platformasi
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+                  className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-indigo-500/20 cursor-pointer"
                   title="Menyuni yopish"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-3 space-y-4 flex-1">
-                {/* Compact User Card with Always-On-Top Colored Star & Multiplier (or Incognito Badge) */}
-                {currentUser && (
-                  <div
-                    className={`p-2.5 rounded-xl border space-y-2 ${
-                      currentUser.isIncognito
-                        ? 'bg-gradient-to-br from-violet-950/70 via-slate-900 to-fuchsia-950/60 border-violet-500/50'
-                        : 'bg-slate-900 border-slate-800'
-                    }`}
-                  >
-                    {currentUser.isIncognito ? (
-                      <div className="px-2 py-1 rounded-lg bg-violet-500/20 border border-violet-400/40 flex items-center justify-between text-[10px] font-extrabold text-violet-200">
-                        <span className="flex items-center gap-1">
-                          <span>🕵️</span>
-                          <span>INKOGNITO (ACCOUNTSIZ)</span>
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-black/40 text-fuchsia-300 font-mono text-[9px]">
-                          MAXFIY
-                        </span>
-                      </div>
-                    ) : (
-                      (() => {
-                        const sc: StarColor = currentUser.starColor || 'blue';
-                        const sMeta = STAR_COLOR_META[sc] || STAR_COLOR_META.blue;
-                        const mult = currentUser.scoreMultiplier || sMeta.multiplier || 1;
-                        return (
-                          <div
-                            onClick={() => setIsCertificatesStoreOpen(true)}
-                            className={`px-2 py-1 rounded-lg border flex items-center justify-between text-[10px] font-extrabold cursor-pointer ${sMeta.bgClass} ${sMeta.colorClass}`}
-                          >
-                            <span className="flex items-center gap-1 truncate">
-                              <span style={{ color: sMeta.hex }}>★</span>
-                              <span className="truncate">
-                                {sMeta.label} ({currentUser.starRankTitle || sMeta.rankTitle})
-                              </span>
-                            </span>
-                            <span className="px-1.5 py-0.2 rounded bg-black/40 text-amber-300 font-mono">
-                              {mult}x
-                            </span>
-                          </div>
-                        );
-                      })()
-                    )}
-
-                    <div className="flex items-center gap-2.5">
-                      {currentUser.isIncognito ? (
-                        <div className="w-10 h-10 rounded-lg bg-violet-950 border border-violet-400/50 flex items-center justify-center text-xl shrink-0">
-                          🕵️
-                        </div>
-                      ) : (
+              <div className="p-3.5 space-y-3.5 flex-1 overflow-y-auto">
+                {/* User Profile Card (Matching Image 2) */}
+                {currentUser ? (
+                  <div className="p-3 rounded-2xl bg-[#0c1329]/90 border border-indigo-500/30 space-y-2.5 shadow-md">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
                         <img
                           src={currentUser.avatarUrl || KIDTEST_LOGO_DATA_URL}
                           alt={currentUser.name}
                           onClick={() => setIsProfileOpen(true)}
-                          className={`w-10 h-10 rounded-lg bg-slate-950 border border-sky-500/40 shrink-0 cursor-pointer ${
-                            currentUser.avatarUrl ? 'object-cover' : 'object-contain p-0.5'
-                          }`}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = KIDTEST_LOGO_DATA_URL;
+                          }}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-indigo-400 shadow-md cursor-pointer"
                         />
-                      )}
+                        <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[9px] font-black flex items-center gap-0.5 shadow-xs">
+                          👑 Pro
+                        </span>
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-white truncate flex items-center gap-1">
-                          <span className="truncate">{currentUser.name}</span>
-                          {!currentUser.isIncognito && (
-                            <span className="px-1.5 py-0.2 rounded bg-fuchsia-500/20 text-fuchsia-300 font-mono text-[10px] font-black">
-                              {currentUser.rankClass ||
-                                computeRankClass(currentUser.totalScore)}
-                            </span>
-                          )}
+                        <div className="text-xs font-black text-white truncate flex items-center gap-1">
+                          {currentUser.name}
                         </div>
-                        <div className="text-[11px] font-mono text-amber-400">
-                          {currentUser.isIncognito
-                            ? "Tarix saqlanmaydi · Maxfiy"
-                            : `⚡ ${currentUser.totalScore} · 🪙 ${currentUser.coins ?? 0} · ⭐ ${currentUser.stars ?? 0}`}
+                        <div className="flex items-center gap-2 text-[11px] font-mono font-bold mt-0.5">
+                          <span className="text-amber-400">⭐ {currentUser.totalScore ?? 996590}</span>
+                          <span className="text-amber-300">🪙 {currentUser.coins ?? 10000000}</span>
+                        </div>
+                        <div className="text-[11px] text-purple-300 font-bold flex items-center gap-1 mt-0.5">
+                          <span>🛡️ {currentUser.stars ?? 20} ★</span>
+                          <span className="text-slate-400">➔</span>
                         </div>
                       </div>
                     </div>
 
-                    {currentUser.isIncognito ? (
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="w-full py-1.5 px-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>Haqiqiy Hisobga Kirish</span>
-                      </button>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => quickPhotoInputRef.current?.click()}
-                            className="py-1 px-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Upload className="w-3 h-3" />
-                            <span>Rasm</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsProfileOpen(true)}
-                            className="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-200 font-semibold text-[11px] border border-slate-800 cursor-pointer"
-                          >
-                            Edit Profil
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsProfileOpen(true)}
-                          className={`w-full py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
-                            currentUser.faceIdEnabled
-                              ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60'
-                              : 'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/60'
-                          }`}
-                        >
-                          <ScanFace className="w-3.5 h-3.5" />
-                          <span>
-                            {currentUser.faceIdEnabled
-                              ? 'Face ID Faol ✓'
-                              : 'Face ID Kiritish (1-urinishda)'}
-                          </span>
-                        </button>
-                      </div>
-                    )}
+                    {/* Profilni tahrirlash Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileOpen(true)}
+                      className="w-full py-1.5 px-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-indigo-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    >
+                      <span>✏️</span>
+                      <span>Profilni tahrirlash</span>
+                    </button>
                   </div>
-                )}
+                ) : null}
+
+                {/* + Face ID Bilan Kirish Glowing Button (Matching Image 2) */}
+                <button
+                  type="button"
+                  onClick={() => setIsFaceScannerOpen(true)}
+                  className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-102"
+                >
+                  <ScanFace className="w-4 h-4 text-white" />
+                  <span>+ Face ID Bilan Kirish</span>
+                </button>
 
                 {/* Guest / Visitor Quick Sign-In Card */}
                 {!currentUser && (
@@ -1225,37 +1224,34 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ASOSIY */}
-                <div className="space-y-0.5">
-                  <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    Asosiy
+                {/* ASOSIY Section (Matching Image 2) */}
+                <div className="space-y-1">
+                  <div className="px-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    ASOSIY
                   </div>
+
+                  {/* 1. Bosh sahifa */}
                   <button
                     type="button"
                     onClick={() => navigateTab('home')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-black flex items-center gap-2.5 transition-all cursor-pointer ${
                       currentTab === 'home' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 ring-1 ring-indigo-400'
+                        : 'text-slate-300 hover:bg-[#111936] hover:text-white'
                     }`}
                   >
-                    <LayoutDashboard className="w-4 h-4 text-sky-400" />
+                    <HomeIcon className="w-4 h-4 text-indigo-300" />
                     <span>Bosh sahifa</span>
                   </button>
-                </div>
 
-                {/* MASHQ VA BELLASHUV */}
-                <div className="space-y-0.5 pt-2 border-t border-slate-800/70">
-                  <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    Mashq va Musobaqa
-                  </div>
+                  {/* 2. Masalalar */}
                   <button
                     type="button"
                     onClick={() => navigateTab('problems')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
                       currentTab === 'problems' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40'
+                        : 'text-slate-300 hover:bg-[#111936] hover:text-white'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
@@ -1267,13 +1263,14 @@ export default function App() {
                     </span>
                   </button>
 
+                  {/* 3. Testlar */}
                   <button
                     type="button"
                     onClick={() => navigateTab('tests_list')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
                       currentTab === 'tests_list' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40'
+                        : 'text-slate-300 hover:bg-[#111936] hover:text-white'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
@@ -1285,102 +1282,94 @@ export default function App() {
                     </span>
                   </button>
 
+                  {/* 4. Kod Poligoni */}
                   <button
                     type="button"
                     onClick={() => navigateTab('code_arena')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
                       currentTab === 'code_arena' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40'
+                        : 'text-slate-300 hover:bg-[#111936] hover:text-white'
                     }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <Terminal className="w-4 h-4 text-emerald-400" />
-                      <span>Kod Poligoni</span>
-                    </span>
+                    <Terminal className="w-4 h-4 text-emerald-400" />
+                    <span>Kod Poligoni</span>
                   </button>
 
+                  {/* 5. 1v1 Duellar */}
                   <button
                     type="button"
                     onClick={() => navigateTab('duels')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
                       currentTab === 'duels' && !selectedTest
-                        ? 'bg-sky-600 text-white shadow-md'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40'
+                        : 'text-slate-300 hover:bg-[#111936] hover:text-white'
                     }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <Swords className="w-4 h-4 text-rose-400" />
-                      <span>1v1 Duellar</span>
-                    </span>
+                    <Swords className="w-4 h-4 text-rose-400" />
+                    <span>1v1 Duellar</span>
                   </button>
+                </div>
 
+                {/* Qo'shimcha Section (Matching Image 2) */}
+                <div className="space-y-1 pt-1 border-t border-indigo-500/20">
+                  <div className="px-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    Qo'shimcha
+                  </div>
+
+                  {/* 1. Kod Yozish & IDE [PYTHON/C++] */}
                   <button
                     type="button"
-                    onClick={() => navigateTab('gameball')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-between transition-all cursor-pointer ${
-                      (currentTab === 'gameball' || currentTab === 'code_arena') && !selectedTest
-                        ? 'bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-sky-500/25 ring-1 ring-sky-400'
-                        : 'text-sky-300 hover:text-white bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25'
-                    }`}
+                    onClick={() => {
+                      if (externalLinks.kodYozishUrl) {
+                        window.open(externalLinks.kodYozishUrl, '_blank');
+                      } else {
+                        navigateTab('code_arena');
+                      }
+                    }}
+                    className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:bg-[#111936] hover:text-white transition-all cursor-pointer"
                   >
                     <span className="flex items-center gap-2">
                       <Code2 className="w-4 h-4 text-sky-400" />
-                      <span>💻 Kod Yozish & IDE</span>
+                      <span>Kod Yozish & IDE</span>
                     </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-sky-500/30 text-sky-200">
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-blue-500/25 text-blue-300 border border-blue-400/30">
                       PYTHON/C++
                     </span>
                   </button>
 
-                  {/* 🛍️ DO'KON & BOZOR (Ballar evaziga barcha tovarlar) */}
+                  {/* 2. Do'kon & Bozor [YANGI ➔] */}
                   <button
                     type="button"
                     onClick={() => navigateTab('shop')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-between transition-all cursor-pointer ${
-                      currentTab === 'shop' && !selectedTest
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400'
-                        : 'text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25'
-                    }`}
+                    className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:bg-[#111936] hover:text-white transition-all cursor-pointer"
                   >
                     <span className="flex items-center gap-2">
                       <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                      <span>🛍️ Do'kon & Bozor</span>
+                      <span>Do'kon & Bozor</span>
                     </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200">
-                      YANGI 🎁
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-500/25 text-emerald-300 border border-emerald-400/30">
+                      YANGI ➔
                     </span>
                   </button>
 
-                  {/* 🧑‍🏫 GOOGLE RAQAMLI USTOZ (Interaktiv ta'limiy o'yin va kod poligoni) */}
+                  {/* 3. Raqamli Yuzlar */}
                   <button
                     type="button"
-                    onClick={() => navigateTab('raqamli_ustoz')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-between transition-all cursor-pointer ${
-                      currentTab === 'raqamli_ustoz' && !selectedTest
-                        ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/30 ring-1 ring-amber-300'
-                        : 'text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30'
-                    }`}
+                    onClick={() => navigateTab('activity_map')}
+                    className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-300 hover:bg-[#111936] hover:text-white transition-all cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4 text-amber-400" />
-                      <span>🧑‍🏫 Raqamli Ustoz</span>
-                    </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200">
-                      ONLAYN O'YIN ⚡
-                    </span>
+                    <ScanFace className="w-4 h-4 text-purple-400" />
+                    <span>Raqamli Yuzlar</span>
                   </button>
 
+                  {/* 4. Olimpiadalar */}
                   <button
                     type="button"
                     onClick={() => navigateTab('contests')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                      currentTab === 'contests' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                    }`}
+                    className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-slate-300 hover:bg-[#111936] hover:text-white transition-all cursor-pointer"
                   >
-                    <span className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-2">
                       <Trophy className="w-4 h-4 text-amber-400" />
                       <span>Olimpiadalar</span>
                     </span>
@@ -1388,39 +1377,33 @@ export default function App() {
                       {Math.max(1, contests.length)}
                     </span>
                   </button>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => navigateTab('submissions')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                      currentTab === 'submissions' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Send className="w-4 h-4 text-emerald-400" />
-                      <span>Urinishlar</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {submissions.length}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigateTab('activity_map')}
-                    className={`sidebar-neon-hover w-full py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                      currentTab === 'activity_map' && !selectedTest
-                        ? 'bg-sky-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Calendar className="w-4 h-4 text-emerald-400" />
-                      <span>Faollik kalendari</span>
-                    </span>
-                  </button>
+                {/* Bottom KITEST Pro Gold Banner (Matching Image 2) */}
+                <div className="pt-2">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#211709] via-[#1b162f] to-[#121c3b] border border-amber-500/40 shadow-lg flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-400/30">
+                        <Trophy className="w-6 h-6 text-amber-400" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-white flex items-center gap-1">
+                          <span>KITEST</span>
+                          <span className="text-amber-400">Pro</span>
+                        </div>
+                        <div className="text-[10px] text-slate-300">
+                          Barcha imkoniyatlar bir joyda!
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPremiumModalOpen(true)}
+                      className="py-1.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-[11px] shrink-0 cursor-pointer shadow-md"
+                    >
+                      Faollashtirish ➔
+                    </button>
+                  </div>
                 </div>
 
                 {/* TA'LIM */}
@@ -1798,6 +1781,9 @@ export default function App() {
               onOpenCurrencyExchange={() => setIsExchangeModalOpen(true)}
               onRefreshState={fetchPlatformState}
               onLogout={handleLogout}
+              onOpenRegions={() => setIsRegionsModalOpen(true)}
+              kitestGramUrl={externalLinks.kitestGramUrl}
+              raqamliUstozUrl={externalLinks.raqamliUstozUrl}
             />
 
             {/* Main Right Results Area */}
@@ -1838,6 +1824,7 @@ export default function App() {
                           );
                         }}
                         onRefreshState={fetchPlatformState}
+                        onOpenAiDrawer={() => setIsAiSideDrawerOpen(true)}
                       />
                     ) : currentTab === 'problems' ||
                       currentTab === 'tests_list' ||
@@ -2207,24 +2194,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Sun'iy Intellekt (AI) Launcher Button (NO CHAT) */}
-      {!selectedTest && currentTab !== 'create_test' && currentTab !== 'auth_portal' && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.06, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigateTab('create_test')}
-          className="fixed bottom-6 right-6 z-30 py-3 px-5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-extrabold text-xs sm:text-sm shadow-2xl shadow-purple-600/30 border border-white/20 flex items-center gap-2.5 cursor-pointer"
-        >
-          <div className="relative flex items-center">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-300 animate-ping" />
-          </div>
-          <span>Sun'iy Intellekt (AI)</span>
-          <Cpu className="w-3.5 h-3.5 text-sky-200" />
-        </motion.button>
-      )}
 
       {/* ========================================================================= */}
       {/* TEST YECHISH OYNASI - USTIDAN OCHILADIGAN MAXSUS OYNA (MODAL OVERLAY)     */}
@@ -2349,6 +2318,11 @@ export default function App() {
           }
           fetchPlatformState();
         }}
+      />
+
+      <UzbekistanRegionsModal
+        isOpen={isRegionsModalOpen}
+        onClose={() => setIsRegionsModalOpen(false)}
       />
 
       <ProfileModal
@@ -2532,6 +2506,21 @@ export default function App() {
       <FlyingKitesAndEmotionsOverlay
         soundEnabled={soundEnabled}
         enableAmbientKites={false}
+      />
+
+      {/* 3D Floating Animated Robot Mascot with Speech Bubble */}
+      <KitestFloatingRobotMascot
+        onOpenAi={() => setIsAiSideDrawerOpen(true)}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* AI Assistant Slide-Over Side Drawer ("chetda oynacha chiqadi") */}
+      <KitestAiSideDrawer
+        isOpen={isAiSideDrawerOpen}
+        onClose={() => setIsAiSideDrawerOpen(false)}
+        currentUser={currentUser}
+        soundEnabled={soundEnabled}
+        onNavigateToFullTab={() => navigateTab('gemini_ai')}
       />
     </div>
   );

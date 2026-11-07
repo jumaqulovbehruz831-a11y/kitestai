@@ -91,7 +91,7 @@ export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
           </div>
 
           {/* Center Navigation Pills (Image 1) */}
-          <nav className="hidden lg:flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
             <button
               type="button"
               onClick={() => {
@@ -559,9 +559,9 @@ export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
               href={(() => {
                 try {
                   const s = localStorage.getItem('kitest_external_links');
-                  if (s) return JSON.parse(s).kitestGramUrl || 'https://t.me/kitest_uz';
+                  if (s) return JSON.parse(s).kitestGramUrl || 'https://t.me/kitestai';
                 } catch {}
-                return 'https://t.me/kitest_uz';
+                return 'https://t.me/kitestai';
               })()}
               target="_blank"
               rel="noopener noreferrer"

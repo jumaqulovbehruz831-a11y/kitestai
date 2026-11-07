@@ -564,11 +564,13 @@
     "screenshotProtectionEnabled": true,
     "updatedAt": "2026-11-06T10:44:10.218Z",
     "externalLinks": {
-      "kitestGramUrl": "https://t.me/kitest_uz",
+      "kitestGramUrl": "https://t.me/kitestai",
       "raqamliUstozUrl": "https://raqamliustoz.uz",
       "kodYozishUrl": "",
       "youtubeUrl": "https://youtube.com/@kitest_uz",
-      "githubUrl": "https://github.com/kitest-platform"
+      "githubUrl": "https://github.com/kitest-platform",
+      "kitestBotUrl": "https://t.me/kitest",
+      "aiAssistantUrl": ""
     }
   },
   "studyPlans": [],

@@ -6360,9 +6360,11 @@ app.post("/api/admin/media-config", (req, res) => {
 // Admin External Links & Integrations ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
 app.get(["/api/external-links", "/api/admin/external-links"], (_req, res) => {
   const externalLinks = (db.securityConfig as any).externalLinks || {
-    kitestGramUrl: "https://t.me/kitest_uz",
+    kitestGramUrl: "https://t.me/kitestai",
+    kitestBotUrl: "https://t.me/kitest",
     raqamliUstozUrl: "https://raqamliustoz.uz",
     kodYozishUrl: "",
+    aiAssistantUrl: "",
     youtubeUrl: "https://youtube.com/@kitest_uz",
     githubUrl: "https://github.com/kitest-platform",
   };
@@ -6374,13 +6376,15 @@ app.get(["/api/external-links", "/api/admin/external-links"], (_req, res) => {
 
 app.post("/api/admin/external-links", (req, res) => {
   if (!verifyAdmin(req, res)) return;
-  const { kitestGramUrl, raqamliUstozUrl, kodYozishUrl, youtubeUrl, githubUrl } = req.body || {};
+  const { kitestGramUrl, kitestBotUrl, raqamliUstozUrl, kodYozishUrl, aiAssistantUrl, youtubeUrl, githubUrl } = req.body || {};
 
   const current = (db.securityConfig as any).externalLinks || {};
   (db.securityConfig as any).externalLinks = {
-    kitestGramUrl: kitestGramUrl !== undefined ? String(kitestGramUrl).trim() : (current.kitestGramUrl || "https://t.me/kitest_uz"),
+    kitestGramUrl: kitestGramUrl !== undefined ? String(kitestGramUrl).trim() : (current.kitestGramUrl || "https://t.me/kitestai"),
+    kitestBotUrl: kitestBotUrl !== undefined ? String(kitestBotUrl).trim() : (current.kitestBotUrl || "https://t.me/kitest"),
     raqamliUstozUrl: raqamliUstozUrl !== undefined ? String(raqamliUstozUrl).trim() : (current.raqamliUstozUrl || "https://raqamliustoz.uz"),
     kodYozishUrl: kodYozishUrl !== undefined ? String(kodYozishUrl).trim() : (current.kodYozishUrl || ""),
+    aiAssistantUrl: aiAssistantUrl !== undefined ? String(aiAssistantUrl).trim() : (current.aiAssistantUrl || ""),
     youtubeUrl: youtubeUrl !== undefined ? String(youtubeUrl).trim() : (current.youtubeUrl || "https://youtube.com/@kitest_uz"),
     githubUrl: githubUrl !== undefined ? String(githubUrl).trim() : (current.githubUrl || "https://github.com/kitest-platform"),
   };

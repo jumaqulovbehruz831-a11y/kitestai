@@ -69,6 +69,7 @@ interface HomeViewProps {
   onUpdateUser?: (user: User) => void;
   onRefreshState?: () => void;
   onOpenAiDrawer?: () => void;
+  kitestBotUrl?: string;
 }
 
 export interface AnnouncementItem {
@@ -98,8 +99,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenAuth,
   onOpenCertificatesStore,
   onOpenLuckyWheel,
+  onOpenProfile,
   onOpenImageShowcase,
   onOpenAiDrawer,
+  kitestBotUrl,
 }) => {
   const [selectedSubject, setSelectedSubject] = useState<string>('Barchasi');
   const [searchFilter, setSearchFilter] = useState<string>('');
@@ -866,7 +869,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <button
           type="button"
-          onClick={() => (onOpenAiDrawer ? onOpenAiDrawer() : onNavigate('gemini_ai'))}
+          onClick={() => {
+            window.open(kitestBotUrl || 'https://t.me/kitest', '_blank');
+          }}
           className="py-2 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-[#0f172a]/80 hover:bg-[#1e293b] text-slate-300 border border-slate-700/60 transition-all cursor-pointer whitespace-nowrap"
         >
           <span>🤖 Kitestbot</span>

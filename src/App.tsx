@@ -154,14 +154,8 @@ export default function App() {
   const [isFaceScannerOpen, setIsFaceScannerOpen] = useState(false);
   const quickPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Theme state: 'dark' (Tun rejimi) or 'light' (Kun rejimi)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    try {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
-    } catch {}
-    return 'dark';
-  });
+  // Theme state: cosmic dark mode strictly maintained across all devices
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   // User-customizable Dashboard & Platform Background State
   const [bgConfig, setBgConfig] = useState<CustomBackgroundConfig>(() => {
@@ -211,26 +205,10 @@ export default function App() {
 
   const handleToggleTheme = () => {
     playKitestSound('click', soundEnabled);
-    setTheme((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-      } catch {}
-      setBgConfig((curr) => {
-        if (curr.mode === 'preset') {
-          const updated: CustomBackgroundConfig = {
-            ...curr,
-            presetId: next === 'light' ? 'clean-light' : 'default-dark',
-          };
-          try {
-            localStorage.setItem(BG_CONFIG_STORAGE_KEY, JSON.stringify(updated));
-          } catch {}
-          return updated;
-        }
-        return curr;
-      });
-      return next;
-    });
+    setTheme('dark');
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+    } catch {}
   };
 
   const handleToggleSound = () => {
@@ -336,8 +314,10 @@ export default function App() {
   // External Links state ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
   const [externalLinks, setExternalLinks] = useState<{
     kitestGramUrl: string;
+    kitestBotUrl: string;
     raqamliUstozUrl: string;
     kodYozishUrl: string;
+    aiAssistantUrl: string;
     youtubeUrl: string;
     githubUrl: string;
   }>(() => {
@@ -346,13 +326,18 @@ export default function App() {
       if (saved) return JSON.parse(saved);
     } catch {}
     return {
-      kitestGramUrl: 'https://t.me/kitest_uz',
+      kitestGramUrl: 'https://t.me/kitestai',
+      kitestBotUrl: 'https://t.me/kitest',
       raqamliUstozUrl: 'https://raqamliustoz.uz',
       kodYozishUrl: '',
+      aiAssistantUrl: '',
       youtubeUrl: 'https://youtube.com/@kitest_uz',
       githubUrl: 'https://github.com/kitest-platform',
     };
   });
+
+  // Dedicated Viewing User state (RoboContest profile view for any participant)
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetch('/api/external-links')
@@ -1814,7 +1799,10 @@ export default function App() {
                         onOpenAdminModal={() => openDedicatedAuthPage('admin')}
                         onOpenCertificatesStore={() => setIsCertificatesStoreOpen(true)}
                         onOpenLuckyWheel={() => setIsLuckyWheelOpen(true)}
-                        onOpenProfile={() => setIsProfileOpen(true)}
+                        onOpenProfile={() => {
+                          setViewingUser(currentUser);
+                          setIsProfileOpen(true);
+                        }}
                         onOpenImageShowcase={handleOpenImageShowcase}
                         onUpdateUser={(updated) => {
                           setCurrentUser(updated);
@@ -1825,6 +1813,7 @@ export default function App() {
                         }}
                         onRefreshState={fetchPlatformState}
                         onOpenAiDrawer={() => setIsAiSideDrawerOpen(true)}
+                        kitestBotUrl={externalLinks.kitestBotUrl}
                       />
                     ) : currentTab === 'problems' ||
                       currentTab === 'tests_list' ||
@@ -2018,7 +2007,14 @@ export default function App() {
                         }
                         onOpenCertificate={(cert) => setActiveCertificate(cert)}
                         onOpenCertificatesStore={() => setIsCertificatesStoreOpen(true)}
-                        onOpenMyProfile={() => setIsProfileOpen(true)}
+                        onOpenMyProfile={() => {
+                          setViewingUser(currentUser);
+                          setIsProfileOpen(true);
+                        }}
+                        onOpenUserProfile={(u) => {
+                          setViewingUser(u);
+                          setIsProfileOpen(true);
+                        }}
                         onRequireLogin={() => openDedicatedAuthPage('login')}
                         onUpdateUser={(updated) => {
                           setCurrentUser(updated);
@@ -2327,10 +2323,13 @@ export default function App() {
 
       <ProfileModal
         isOpen={isProfileOpen}
-        user={currentUser}
+        user={viewingUser || currentUser}
         submissions={submissions}
         soundEnabled={soundEnabled}
-        onClose={() => setIsProfileOpen(false)}
+        onClose={() => {
+          setIsProfileOpen(false);
+          setViewingUser(null);
+        }}
         onOpenCertificate={(cert) => setActiveCertificate(cert)}
         onOpenCertificatesStore={() => setIsCertificatesStoreOpen(true)}
         onUpdateUser={(updated, allUsers) => {

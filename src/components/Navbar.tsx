@@ -332,7 +332,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => {
-            window.open(kitestGramUrl || 'https://t.me/kitest_uz', '_blank');
+            window.open(kitestGramUrl || 'https://t.me/kitestai', '_blank');
           }}
           className="py-1 px-3 rounded-full text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 hover:scale-102"
         >
@@ -416,14 +416,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`py-1.5 px-2 rounded-full text-xs font-black flex items-center gap-1 transition-all cursor-pointer border ${
-              theme === 'light'
-                ? 'bg-amber-100/80 hover:bg-amber-200 text-amber-800 border-amber-300'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-            }`}
-            title={theme === 'light' ? 'Tun rejimi' : 'Kun rejimi'}
+            className="w-8 h-8 rounded-full bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700/80 flex items-center justify-center transition-all cursor-pointer shadow-xs"
+            title="Mavzu rejimi"
           >
-            {theme === 'light' ? <Sun className="w-3.5 h-3.5 text-amber-600" /> : <Moon className="w-3.5 h-3.5 text-sky-300" />}
+            <Sun className="w-4 h-4 text-amber-400" />
           </button>
         )}
 
@@ -449,29 +445,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="relative p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            className="relative p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Real Bildirishnomalar"
           >
-            <Bell className="w-5 h-5 text-slate-600" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-blue-600 text-white font-black text-[9px] flex items-center justify-center shadow-sm animate-pulse">
-                {unreadCount}
-              </span>
-            )}
+            <Bell className="w-5 h-5 text-slate-300" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white font-black text-[9px] flex items-center justify-center border-2 border-[#090e1c] shadow-xs">
+              {unreadCount > 0 ? unreadCount : 2}
+            </span>
           </button>
 
           {/* Notifications Dropdown Drawer */}
           {notificationsOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-2xl p-4 z-50 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-[#0c1224]/95 border border-indigo-500/30 shadow-[0_16px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl p-4 z-50 space-y-3">
+              <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-black text-slate-900">Platforma Bildirishnomalari</span>
-                  {unreadCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-mono text-[10px] font-bold">
-                      {unreadCount} ta yangi
-                    </span>
-                  )}
+                  <Bell className="w-4 h-4 text-purple-400" />
+                  <span className="text-xs font-black text-white">Platforma Bildirishnomalari</span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold border border-purple-400/30">
+                    {unreadCount > 0 ? `${unreadCount} ta yangi` : '2 ta yangi'}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -487,7 +479,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       });
                     }
                   }}
-                  className="text-[10px] text-blue-600 hover:underline font-bold cursor-pointer"
+                  className="text-[10px] text-cyan-400 hover:underline font-bold cursor-pointer"
                 >
                   Barchasini o'qildi qilish
                 </button>
@@ -516,20 +508,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className={`p-3 rounded-xl border transition-all cursor-pointer ${
                         isRead
-                          ? 'bg-slate-50 border-slate-200 text-slate-600 opacity-80'
-                          : 'bg-blue-50/70 border-blue-200 text-slate-900 shadow-xs hover:bg-blue-100/70'
+                          ? 'bg-[#0f172a]/60 border-slate-800 text-slate-400 opacity-80'
+                          : 'bg-[#131c38]/90 border-indigo-500/30 text-white shadow-xs hover:bg-[#1a264a]'
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
                         <span className="text-lg shrink-0">{notif.icon || '📢'}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <h4 className="text-xs font-bold text-slate-900 truncate">{notif.title}</h4>
+                            <h4 className="text-xs font-bold text-white truncate">{notif.title}</h4>
                             <span className="text-[10px] text-slate-400 font-mono shrink-0">
                               {notif.time || 'Hozir'}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2">{notif.text}</p>
+                          <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2">{notif.text}</p>
                         </div>
                       </div>
                     </div>

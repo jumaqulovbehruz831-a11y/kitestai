@@ -29,6 +29,7 @@ import {
   Bell,
   Building2,
   Zap,
+  ChevronRight,
 } from 'lucide-react';
 
 interface LeaderboardViewProps {
@@ -46,6 +47,7 @@ interface LeaderboardViewProps {
   onOpenCertificate?: (cert: CertificateData) => void;
   onOpenCertificatesStore?: () => void;
   onOpenMyProfile?: () => void;
+  onOpenUserProfile?: (user: User) => void;
   onRequireLogin?: () => void;
   onUpdateUser?: (updated: User) => void;
   onRefreshState?: () => Promise<void>;
@@ -61,6 +63,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   onOpenCertificate,
   onOpenCertificatesStore,
   onOpenMyProfile,
+  onOpenUserProfile,
   onRequireLogin,
   onUpdateUser,
   onRefreshState,
@@ -1336,20 +1339,36 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {currentUser?.id === inspectedUser.id && onOpenMyProfile && (
+                    {onOpenUserProfile && (
                       <button
+                        type="button"
+                        onClick={() => {
+                          const target = inspectedUser;
+                          setInspectedUser(null);
+                          onOpenUserProfile(target);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-purple-600/30"
+                      >
+                        <span>To'liq Profil</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {currentUser?.id === inspectedUser.id && onOpenMyProfile && !onOpenUserProfile && (
+                      <button
+                        type="button"
                         onClick={() => {
                           setInspectedUser(null);
                           onOpenMyProfile();
                         }}
-                        className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white"
+                        className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white cursor-pointer"
                       >
                         Tahrirlash
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => setInspectedUser(null)}
-                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200"
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer"
                     >
                       Yopish
                     </button>

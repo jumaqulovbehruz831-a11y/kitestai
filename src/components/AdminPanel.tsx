@@ -68,6 +68,7 @@ import {
   Laptop,
   Terminal,
   Image as ImageIcon,
+  Bot,
 } from 'lucide-react';
 import { OFFICIAL_YOUTUBE_URL } from '../types';
 import { KIDTEST_LOGO_DATA_URL } from './KitestEmblem';
@@ -285,10 +286,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isSendingNotif, setIsSendingNotif] = useState<boolean>(false);
   const [notifStatusMsg, setNotifStatusMsg] = useState<string | null>(null);
 
-  // External Links state ("admin ga telegram va raqaml u hammasini linkini joylashham qosh")
-  const [extKitestGramUrl, setExtKitestGramUrl] = useState<string>('https://t.me/kitest_uz');
+  // External Links state ("telegramga t.me/kitestai bot esa kitest admin panelga yani narsalar qosh")
+  const [extKitestGramUrl, setExtKitestGramUrl] = useState<string>('https://t.me/kitestai');
+  const [extKitestBotUrl, setExtKitestBotUrl] = useState<string>('https://t.me/kitest');
   const [extRaqamliUstozUrl, setExtRaqamliUstozUrl] = useState<string>('https://raqamliustoz.uz');
   const [extKodYozishUrl, setExtKodYozishUrl] = useState<string>('');
+  const [extAiAssistantUrl, setExtAiAssistantUrl] = useState<string>('');
   const [extYoutubeUrl, setExtYoutubeUrl] = useState<string>('https://youtube.com/@kitest_uz');
   const [extGithubUrl, setExtGithubUrl] = useState<string>('https://github.com/kitest-platform');
   const [isSavingExtLinks, setIsSavingExtLinks] = useState<boolean>(false);
@@ -300,8 +303,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       .then((data) => {
         if (data && data.externalLinks) {
           if (data.externalLinks.kitestGramUrl) setExtKitestGramUrl(data.externalLinks.kitestGramUrl);
+          if (data.externalLinks.kitestBotUrl) setExtKitestBotUrl(data.externalLinks.kitestBotUrl);
           if (data.externalLinks.raqamliUstozUrl) setExtRaqamliUstozUrl(data.externalLinks.raqamliUstozUrl);
           if (data.externalLinks.kodYozishUrl !== undefined) setExtKodYozishUrl(data.externalLinks.kodYozishUrl);
+          if (data.externalLinks.aiAssistantUrl !== undefined) setExtAiAssistantUrl(data.externalLinks.aiAssistantUrl);
           if (data.externalLinks.youtubeUrl) setExtYoutubeUrl(data.externalLinks.youtubeUrl);
           if (data.externalLinks.githubUrl) setExtGithubUrl(data.externalLinks.githubUrl);
         }
@@ -316,8 +321,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const payload = {
         kitestGramUrl: extKitestGramUrl.trim(),
+        kitestBotUrl: extKitestBotUrl.trim(),
         raqamliUstozUrl: extRaqamliUstozUrl.trim(),
         kodYozishUrl: extKodYozishUrl.trim(),
+        aiAssistantUrl: extAiAssistantUrl.trim(),
         youtubeUrl: extYoutubeUrl.trim(),
         githubUrl: extGithubUrl.trim(),
       };
@@ -3742,7 +3749,69 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 font-mono"
                 />
                 <p className="text-[10px] text-slate-400">
-                  Yuqori paneldagi <b>[KitestGram]</b> tugmasi bosilganda ushbu havola yangi oynada ochiladi.
+                  Yuqori paneldagi <b>[KitestGram]</b> tugmasi bosilganda ochiladi (Standart: <code>https://t.me/kitestai</code>).
+                </p>
+              </div>
+
+              {/* 1.5. Telegram Bot (KitestBot) */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-cyan-400" />
+                    <span>🤖 KitestBot / Telegram Bot Havolasi</span>
+                  </label>
+                  {extKitestBotUrl && (
+                    <a
+                      href={extKitestBotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extKitestBotUrl}
+                  onChange={(e) => setExtKitestBotUrl(e.target.value)}
+                  placeholder="https://t.me/kitest"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Bosh sahifadagi <b>[🤖 Kitestbot]</b> tugmasi bosilganda Telegram bot ochiladi (Standart: <code>https://t.me/kitest</code>).
+                </p>
+              </div>
+
+              {/* 1.6. Sun'iy Intellekt (AI) Havolasi */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-purple-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <span>✨ Sun'iy Intellekt (AI) Tashqi Havolasi (Ixtiyoriy)</span>
+                  </label>
+                  {extAiAssistantUrl && (
+                    <a
+                      href={extAiAssistantUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-purple-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Tekshirish</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={extAiAssistantUrl}
+                  onChange={(e) => setExtAiAssistantUrl(e.target.value)}
+                  placeholder="Bo'sh qoldirilsa platformaning ichki Gemini AI tizimi ishlaydi"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Bo'sh qoldirilsa platformadagi rasmiy Gemini AI ochiladi; havola kiritilsa o'sha manzilga yo'naltiradi.
                 </p>
               </div>
 

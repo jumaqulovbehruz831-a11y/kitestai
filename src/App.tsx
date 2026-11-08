@@ -144,6 +144,80 @@ const THEME_STORAGE_KEY = 'kitest_theme_mode';
 const SOUND_STORAGE_KEY = 'kitest_sound_enabled';
 const BG_CONFIG_STORAGE_KEY = 'kitest_custom_bg_v1';
 
+// RoboContest Standard Hash-Based URL Routing ("har bitta bo'lim uchun alohida havola/oyna")
+export const TAB_TO_HASH: Record<NavTab, string> = {
+  home: '#/home',
+  problems: '#/tasks',
+  tests_list: '#/tests',
+  tests: '#/tests',
+  code_arena: '#/arena',
+  duels: '#/duels',
+  contests: '#/contests',
+  courses: '#/courses',
+  books_3d: '#/books',
+  study_plans: '#/study',
+  algorithms: '#/algorithms',
+  roadmap: '#/roadmap',
+  my_classes: '#/classes',
+  leaderboard: '#/users',
+  all_users: '#/users',
+  subscriptions: '#/subscriptions',
+  blogs: '#/blogs',
+  how_it_works: '#/about',
+  our_team: '#/team',
+  create_test: '#/create-test',
+  submissions: '#/submissions',
+  gemini_ai: '#/ai',
+  kitestgram: '#/kitestgram',
+  chat: '#/chat',
+  majlis: '#/majlis',
+  activity_map: '#/faces',
+  admin: '#/admin',
+  gameball: '#/kiteshot',
+  shop: '#/shop',
+  raqamli_ustoz: '#/mentor',
+  auth_portal: '#/portal',
+};
+
+export const HASH_TO_TAB: Record<string, NavTab> = {
+  '#/home': 'home',
+  '#/tasks': 'problems',
+  '#/problems': 'problems',
+  '#/tests': 'tests_list',
+  '#/tests_list': 'tests_list',
+  '#/arena': 'code_arena',
+  '#/code_arena': 'code_arena',
+  '#/duels': 'duels',
+  '#/contests': 'contests',
+  '#/courses': 'courses',
+  '#/books': 'books_3d',
+  '#/study': 'study_plans',
+  '#/algorithms': 'algorithms',
+  '#/roadmap': 'roadmap',
+  '#/classes': 'my_classes',
+  '#/users': 'leaderboard',
+  '#/leaderboard': 'leaderboard',
+  '#/all_users': 'all_users',
+  '#/subscriptions': 'subscriptions',
+  '#/blogs': 'blogs',
+  '#/about': 'how_it_works',
+  '#/team': 'our_team',
+  '#/create-test': 'create_test',
+  '#/submissions': 'submissions',
+  '#/ai': 'gemini_ai',
+  '#/gemini_ai': 'gemini_ai',
+  '#/kitestgram': 'kitestgram',
+  '#/chat': 'kitestgram',
+  '#/majlis': 'majlis',
+  '#/faces': 'activity_map',
+  '#/admin': 'admin',
+  '#/kiteshot': 'gameball',
+  '#/gameball': 'gameball',
+  '#/shop': 'shop',
+  '#/mentor': 'raqamli_ustoz',
+  '#/portal': 'auth_portal',
+};
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [selectedTest, setSelectedTest] = useState<TestItem | null>(null);
@@ -153,6 +227,12 @@ export default function App() {
   >('login');
   const [isFaceScannerOpen, setIsFaceScannerOpen] = useState(false);
   const quickPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Single active session concurrency security alert ("bitta accountga bir paytning ozida ikkikishi kirib bolmasoin")
+  const [isSecurityAlertOpen, setIsSecurityAlertOpen] = useState(false);
+  const [securityAlertMessage, setSecurityAlertMessage] = useState(
+    "⚠️ Xavfsizlik ogohlantiruvi: Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!"
+  );
 
   // Theme state: cosmic dark mode strictly maintained across all devices
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -882,11 +962,130 @@ export default function App() {
     playKitestSound('click', soundEnabled);
     setSelectedTest(null);
     setCurrentTab(tab);
+    if (TAB_TO_HASH[tab]) {
+      window.location.hash = TAB_TO_HASH[tab];
+    }
     if (window.innerWidth < 640) {
       setSidebarOpen(false);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // RoboContest Standard Hash-Based URL Routing Listener
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || '';
+      if (!hash || hash === '#/' || hash === '#/home') {
+        if (currentTab !== 'home') setCurrentTab('home');
+        return;
+      }
+      if (hash.startsWith('#/user/') || hash.startsWith('#/profile/')) {
+        const uName = decodeURIComponent(hash.split('/')[2] || '').trim().replace(/^@+/, '');
+        if (uName) {
+          const found = users.find(
+            (u) =>
+              u.username.toLowerCase() === uName.toLowerCase() ||
+              u.id.toLowerCase() === uName.toLowerCase()
+          );
+          if (found) {
+            setViewingUser(found);
+            return;
+          }
+        }
+      }
+      const matched = HASH_TO_TAB[hash];
+      if (matched && matched !== currentTab) {
+        setSelectedTest(null);
+        setCurrentTab(matched);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    if (window.location.hash) {
+      handleHashChange();
+    }
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [users, currentTab]);
+
+  // Concurrency Guard: Single active session per account ("bitta accountga bir paytning ozida ikkikishi kirib bolmasoin")
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let ws: WebSocket | null = null;
+    let reconnectTimer: any = null;
+
+    const connectWs = () => {
+      try {
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat`);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'auth:force_logout') {
+              if (currentUser && data.userId === currentUser.id) {
+                const currentStoredToken = sessionStorage.getItem('kitest_session_token');
+                if (data.newSessionToken && data.newSessionToken !== currentStoredToken) {
+                  playKitestSound('warning', soundEnabled);
+                  setCurrentUser(null);
+                  setHasEnteredPortal(false);
+                  try {
+                    localStorage.removeItem(AUTH_STORAGE_KEY);
+                    sessionStorage.removeItem('kitest_session_token');
+                  } catch {}
+                  setSecurityAlertMessage(
+                    data.reason ||
+                      "⚠️ Xavfsizlik ogohlantiruvi: Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!"
+                  );
+                  setIsSecurityAlertOpen(true);
+                }
+              }
+            }
+          } catch {}
+        };
+        ws.onclose = () => {
+          reconnectTimer = setTimeout(connectWs, 3500);
+        };
+      } catch {}
+    };
+
+    connectWs();
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [currentUser, soundEnabled]);
+
+  // Periodic active session validation (every 7 seconds)
+  useEffect(() => {
+    if (!currentUser || currentUser.isIncognito) return;
+    const currentStoredToken = sessionStorage.getItem('kitest_session_token');
+    if (!currentStoredToken) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/auth/session-check?userId=${encodeURIComponent(
+            currentUser.id
+          )}&sessionToken=${encodeURIComponent(currentStoredToken)}`
+        );
+        if (res.status === 409) {
+          const body = await res.json();
+          playKitestSound('warning', soundEnabled);
+          setCurrentUser(null);
+          setHasEnteredPortal(false);
+          try {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            sessionStorage.removeItem('kitest_session_token');
+          } catch {}
+          setSecurityAlertMessage(
+            body.reason ||
+              "⚠️ Xavfsizlik ogohlantiruvi: Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!"
+          );
+          setIsSecurityAlertOpen(true);
+        }
+      } catch {}
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [currentUser, soundEnabled]);
 
   const openDedicatedAuthPage = (
     mode: 'login' | 'register' | 'admin' = 'login'
@@ -2521,6 +2720,36 @@ export default function App() {
         soundEnabled={soundEnabled}
         onNavigateToFullTab={() => navigateTab('gemini_ai')}
       />
+
+      {/* Single Active Session Concurrency Security Modal */}
+      {isSecurityAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-3xl bg-[#0c1224] border-2 border-red-500/40 p-6 sm:p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.4)] text-white space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center text-3xl shadow-inner border border-red-500/30 animate-pulse">
+              ⚠️
+            </div>
+            <h3 className="text-xl font-black text-white tracking-tight">
+              Xavfsizlik Ogohlantiruvi
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              {securityAlertMessage}
+            </p>
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/20 text-[11px] text-red-300 font-mono">
+              Xavfsizlik qoidasi: Bir vaqtning o'zida bitta hisobdan faqat bitta qurilma/foydalanuvchi foydalanishi mumkin.
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSecurityAlertOpen(false);
+                openDedicatedAuthPage('login');
+              }}
+              className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm shadow-lg shadow-red-600/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Tushundim (Qaytadan Kirish)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

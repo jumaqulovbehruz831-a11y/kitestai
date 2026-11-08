@@ -311,164 +311,41 @@ export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
             </div>
           </div>
 
-          {/* Right Column: 3D Robot, Glowing Pedestal, Floating Book & Tablet UI (7 cols) */}
-          <div className="lg:col-span-7 relative flex items-center justify-center min-h-[440px] sm:min-h-[500px]">
-            {/* Glowing Space Earth & Planetary Rings in Background */}
+          {/* Right Column: High-Definition 3D Robot & Interactive Tablet Showcase (100% Matching Image 2) */}
+          <div className="lg:col-span-7 relative flex items-center justify-center min-h-[460px] sm:min-h-[520px]">
+            {/* Ambient Cosmic Radial Glow */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-indigo-900/40 via-blue-900/30 to-cyan-500/20 blur-xl opacity-70" />
-              {/* Planetary Orbital Rings */}
-              <div className="absolute w-[460px] h-[220px] rounded-[100%] border-2 border-cyan-400/30 -rotate-12 pointer-events-none shadow-[0_0_20px_rgba(6,182,212,0.4)]" />
-              <div className="absolute w-[520px] h-[260px] rounded-[100%] border border-purple-500/25 -rotate-12 pointer-events-none" />
+              <div className="w-96 h-96 rounded-full bg-cyan-500/20 blur-3xl" />
+              <div className="w-[500px] h-[500px] rounded-full bg-indigo-600/20 blur-[100px]" />
             </div>
 
-            {/* Floating 3D Book on the Left */}
+            {/* Floating 3D Artwork Container */}
             <motion.div
               animate={{
                 y: [-6, 6, -6],
-                rotate: [-2, 2, -2],
-              }}
-              transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 z-20 w-24 h-20 sm:w-28 sm:h-24 pointer-events-none drop-shadow-[0_12px_24px_rgba(59,130,246,0.5)]"
-            >
-              <svg viewBox="0 0 100 80" className="w-full h-full" fill="none">
-                <defs>
-                  <linearGradient id="landingBookGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#818cf8" />
-                  </linearGradient>
-                </defs>
-                <path d="M50 20 Q30 10 10 20 L10 65 Q30 55 50 65 L50 20 Z" fill="#0f172a" stroke="url(#landingBookGrad)" strokeWidth="2" />
-                <path d="M50 20 Q70 10 90 20 L90 65 Q70 55 50 65 L50 20 Z" fill="#0f172a" stroke="url(#landingBookGrad)" strokeWidth="2" />
-                <path d="M16 28 Q32 20 46 28" stroke="#38bdf8" strokeWidth="1.5" opacity="0.8" />
-                <path d="M16 38 Q32 30 46 38" stroke="#38bdf8" strokeWidth="1.5" opacity="0.6" />
-                <path d="M16 48 Q32 40 46 48" stroke="#38bdf8" strokeWidth="1.5" opacity="0.4" />
-                <path d="M54 28 Q68 20 84 28" stroke="#38bdf8" strokeWidth="1.5" opacity="0.8" />
-                <path d="M54 38 Q68 30 84 38" stroke="#38bdf8" strokeWidth="1.5" opacity="0.6" />
-                <path d="M54 48 Q68 40 84 48" stroke="#38bdf8" strokeWidth="1.5" opacity="0.4" />
-              </svg>
-            </motion.div>
-
-            {/* Central 3D Animated Robot Mascot */}
-            <motion.div
-              animate={{
-                y: [-8, 8, -8],
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative z-10 w-64 h-80 sm:w-72 sm:h-96 flex flex-col items-center justify-center"
-            >
-              <svg viewBox="0 0 360 420" className="w-full h-full" fill="none">
-                <defs>
-                  <linearGradient id="pedestalGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#4338ca" />
-                    <stop offset="50%" stopColor="#1e1b4b" />
-                    <stop offset="100%" stopColor="#0b0f19" />
-                  </linearGradient>
-                  <linearGradient id="neonRobotGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#ffffff" />
-                    <stop offset="70%" stopColor="#e2e8f0" />
-                    <stop offset="100%" stopColor="#94a3b8" />
-                  </linearGradient>
-                  <linearGradient id="robotScreenGradL" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#020617" />
-                    <stop offset="100%" stopColor="#0f172a" />
-                  </linearGradient>
-                  <linearGradient id="cyanGlowEye" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#06b6d4" />
-                  </linearGradient>
-                  <filter id="neonEyeGlow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="4" result="glow" />
-                    <feMerge>
-                      <feMergeNode in="glow" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                {/* Circular Pedestal / Floating Platform */}
-                <ellipse cx="180" cy="380" rx="140" ry="24" fill="url(#pedestalGrad)" stroke="#6366f1" strokeWidth="3" />
-                <ellipse cx="180" cy="380" rx="110" ry="16" fill="#0f172a" stroke="#38bdf8" strokeWidth="2" />
-                <ellipse cx="180" cy="380" rx="80" ry="10" fill="#020617" />
-
-                {/* Graduation Cap */}
-                <path d="M120 70 L180 50 L240 70 L180 85 Z" fill="#1e1b4b" stroke="#38bdf8" strokeWidth="2" />
-                <circle cx="180" cy="70" r="3.5" fill="#fbbf24" />
-                <path d="M180 70 Q215 75 225 100" stroke="#fbbf24" strokeWidth="2.5" fill="none" />
-                <circle cx="225" cy="100" r="4" fill="#fbbf24" />
-
-                {/* Robot Head Shell */}
-                <rect x="110" y="85" width="140" height="110" rx="45" fill="url(#neonRobotGrad)" stroke="#cbd5e1" strokeWidth="2.5" />
-                {/* Cute Ear Discs */}
-                <circle cx="108" cy="140" r="14" fill="#0284c7" stroke="#38bdf8" strokeWidth="2.5" />
-                <circle cx="252" cy="140" r="14" fill="#0284c7" stroke="#38bdf8" strokeWidth="2.5" />
-
-                {/* Face Visor Display */}
-                <rect x="125" y="100" width="110" height="75" rx="30" fill="url(#robotScreenGradL)" stroke="#38bdf8" strokeWidth="2" />
-                {/* Glowing Smiling Eyes */}
-                <path d="M142 135 Q152 122 162 135" stroke="url(#cyanGlowEye)" strokeWidth="6" strokeLinecap="round" fill="none" filter="url(#neonEyeGlow)" />
-                <path d="M188 135 Q198 122 208 135" stroke="url(#cyanGlowEye)" strokeWidth="6" strokeLinecap="round" fill="none" filter="url(#neonEyeGlow)" />
-
-                {/* Robot Body */}
-                <path d="M140 200 Q180 210 220 200 L230 280 Q180 290 130 280 Z" fill="url(#neonRobotGrad)" stroke="#cbd5e1" strokeWidth="2.5" />
-                <circle cx="180" cy="240" r="14" fill="#0284c7" stroke="#38bdf8" strokeWidth="2" />
-                <text x="175" y="246" fill="#fff" fontSize="16" fontWeight="bold">K</text>
-
-                {/* Left Arm Pointing to Tablet Screen */}
-                <path d="M130 215 Q80 215 60 190 Q50 180 40 170" stroke="#94a3b8" strokeWidth="16" strokeLinecap="round" fill="none" />
-                <circle cx="40" cy="170" r="10" fill="#0284c7" />
-
-                {/* Right Arm Holding Tablet */}
-                <path d="M225 215 Q265 240 250 270" stroke="#94a3b8" strokeWidth="16" strokeLinecap="round" fill="none" />
-
-                {/* Tablet held in hand with "K" */}
-                <rect x="220" y="220" width="65" height="90" rx="10" fill="#0c142b" stroke="#38bdf8" strokeWidth="2" />
-                <rect x="228" y="228" width="49" height="74" rx="6" fill="#020617" />
-                <text x="244" y="270" fill="#38bdf8" fontSize="28" fontWeight="black" filter="url(#neonEyeGlow)">K</text>
-              </svg>
-            </motion.div>
-
-            {/* Floating 3D Tablet UI Card on the Right (100% Matching Image 1) */}
-            <motion.div
-              animate={{
-                y: [6, -6, 6],
               }}
               transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -right-2 sm:right-0 top-8 z-20 w-64 sm:w-72 rounded-2xl bg-[#090f22]/95 border-2 border-indigo-400/50 p-4 shadow-[0_16px_36px_rgba(79,70,229,0.5)] backdrop-blur-xl"
+              className="relative z-10 w-full max-w-2xl rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.35)] bg-gradient-to-tr from-[#060a17] via-[#09102a] to-[#0d163a] group cursor-pointer"
+              onClick={() => onNavigateTab('contests')}
             >
-              <div className="flex items-center justify-between border-b border-indigo-500/30 pb-2 mb-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-white">KITEST</span>
-                  <span className="text-xs font-black text-cyan-400">AI</span>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">Olimpiada</span>
-              </div>
+              <img
+                src="/assets/aistudio/file_000000003568821099a576100a447aeb_93e3c615.png"
+                alt="KITESTAI 3D Robot Mascot"
+                className="w-full h-auto object-cover transform scale-100 group-hover:scale-[1.02] transition-transform duration-500"
+              />
 
-              {/* Inside Tablet Card: Olimpiada & Trophy */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-purple-950/80 to-indigo-950/80 border border-purple-500/40 flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-xs font-black text-white">Olimpiada</div>
-                  <div className="text-[10px] text-slate-300">Bilimingizni sinab ko'ring</div>
-                  <button
-                    type="button"
-                    onClick={() => onNavigateTab('contests')}
-                    className="mt-2 py-1 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[10px] flex items-center gap-1 shadow-sm cursor-pointer"
-                  >
-                    <span>Boshlash ➔</span>
-                  </button>
-                </div>
-                <div className="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-400/40 shadow-inner">
-                  <Trophy className="w-6 h-6 text-amber-400" />
-                </div>
-              </div>
-
-              {/* Rising Stats Graph Bars */}
-              <div className="mt-3 flex items-end gap-1.5 h-9 px-1">
-                <span className="w-3 rounded-t-sm bg-purple-500/40 h-3" />
-                <span className="w-3 rounded-t-sm bg-purple-500/60 h-4" />
-                <span className="w-3 rounded-t-sm bg-indigo-500/70 h-6" />
-                <span className="w-3 rounded-t-sm bg-cyan-400 h-9 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                <span className="text-[10px] text-cyan-300 font-bold ml-auto font-mono">+85% O'sish</span>
-              </div>
+              {/* Clickable interactive hotspot overlay on the Tablet's Boshlash button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateTab('contests');
+                }}
+                className="absolute right-[8%] sm:right-[10%] top-[45%] sm:top-[48%] py-2 sm:py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/50 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>Boshlash</span>
+                <span>➔</span>
+              </button>
             </motion.div>
           </div>
         </div>

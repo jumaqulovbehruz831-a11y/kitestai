@@ -29,7 +29,7 @@ interface AuthModalProps {
   isOpen: boolean;
   initialMode: 'login' | 'register';
   onClose: () => void;
-  onSuccess: (user: User, allUsers?: User[]) => void;
+  onSuccess: (user: User, allUsers?: User[], sessionToken?: string) => void;
   onOpenAdminModal: () => void;
   onDirectAdminUnlock?: (passcode: string) => void;
 }
@@ -137,7 +137,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
       const data = await res.json();
       if ((res.ok || data.ok || data.success) && data.user) {
-        onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined);
+        if (data.sessionToken) {
+          try { sessionStorage.setItem('kitest_session_token', data.sessionToken); } catch {}
+        }
+        onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined, data.sessionToken);
         onClose();
       } else {
         setError(data.error || 'Google orqali kirishda xatolik yuz berdi');
@@ -208,7 +211,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
       const data = await res.json();
       if (res.ok && data.user) {
-        onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined);
+        if (data.sessionToken) {
+          try { sessionStorage.setItem('kitest_session_token', data.sessionToken); } catch {}
+        }
+        onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined, data.sessionToken);
         onClose();
       } else {
         setError(data.error || 'Face ID orqali kirishda xatolik');
@@ -278,7 +284,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const data = await res.json();
         if (res.ok && data.user) {
-          onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined);
+          if (data.sessionToken) {
+            try { sessionStorage.setItem('kitest_session_token', data.sessionToken); } catch {}
+          }
+          onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined, data.sessionToken);
           onClose();
         } else {
           setError(data.error || 'Login yoki parol noto‘g‘ri');
@@ -336,7 +345,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const data = await res.json();
         if (res.ok && data.user) {
-          onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined);
+          if (data.sessionToken) {
+            try { sessionStorage.setItem('kitest_session_token', data.sessionToken); } catch {}
+          }
+          onSuccess(data.user, Array.isArray(data.users) ? data.users : undefined, data.sessionToken);
           onClose();
         } else {
           setError(data.error || 'Ro‘yxatdan o‘tishda xatolik yuz berdi');

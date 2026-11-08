@@ -3374,6 +3374,259 @@ app.post("/api/wallet/exchange", (req, res) => {
 });
 
 // ==========================================
+// REAL P2P TRADE & CURRENCY TRANSFER ENGINE
+// ==========================================
+export interface StoredTradeOffer {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  creatorUsername: string;
+  creatorAvatar?: string;
+  offeringType: "points" | "coins" | "stars";
+  offeringAmount: number;
+  requestingType: "points" | "coins" | "stars";
+  requestingAmount: number;
+  note?: string;
+  status: "active" | "completed" | "cancelled";
+  acceptedById?: string;
+  acceptedByName?: string;
+  createdAt: string;
+}
+
+if (!(db as any).tradeOffers) {
+  (db as any).tradeOffers = [
+    {
+      id: "trade_init_1",
+      creatorId: "usr_admin_default",
+      creatorName: "Behruz Jumaqulov",
+      creatorUsername: "behruz_admin",
+      creatorAvatar: "/founder_portrait.jpg",
+      offeringType: "coins",
+      offeringAmount: 200,
+      requestingType: "stars",
+      requestingAmount: 4,
+      note: "Tezkor ayirboshlash: 200 Tanga bera olaman!",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "trade_init_2",
+      creatorId: "usr_admin_default",
+      creatorName: "Behruz Jumaqulov",
+      creatorUsername: "behruz_admin",
+      creatorAvatar: "/founder_portrait.jpg",
+      offeringType: "points",
+      offeringAmount: 300,
+      requestingType: "coins",
+      requestingAmount: 250,
+      note: "Reyting balimdan 300 ball taqdim etaman!",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
+
+app.get("/api/wallet/trade-list", (_req, res) => {
+  const list = ((db as any).tradeOffers || []).filter(
+    (t: StoredTradeOffer) => t.status === "active"
+  );
+  res.json({ success: true, trades: list });
+});
+
+app.post("/api/wallet/trade-create", (req, res) => {
+  const { userId, offeringType, offeringAmount, requestingType, requestingAmount, note } = req.body || {};
+  if (!userId) return res.status(401).json({ error: "Avval tizimga kiring!" });
+  const user = db.users.find((u) => u.id === String(userId));
+  if (!user) return res.status(404).json({ error: "Foydalanuvchi topilmadi!" });
+
+  const offAmt = Math.max(1, Math.floor(Number(offeringAmount) || 0));
+  const reqAmt = Math.max(1, Math.floor(Number(requestingAmount) || 0));
+
+  if (offeringType === requestingType) {
+    return res.status(400).json({ error: "Bir xil valyutani almashtirib bo'lmaydi!" });
+  }
+
+  // Check funds to lock
+  if (offeringType === "points" && (user.totalScore || 0) < offAmt) {
+    return res.status(400).json({ error: `Ball yetarli emas! Sizda ${user.totalScore || 0} ball bor.` });
+  }
+  if (offeringType === "coins" && (user.coins || 0) < offAmt) {
+    return res.status(400).json({ error: `Tanga yetarli emas! Sizda ${user.coins || 0} tanga bor.` });
+  }
+  if (offeringType === "stars" && (user.stars || 0) < offAmt) {
+    return res.status(400).json({ error: `Yulduz yetarli emas! Sizda ${user.stars || 0} yulduz bor.` });
+  }
+
+  // Deduct/reserve offering amount
+  if (offeringType === "points") user.totalScore = Math.max(0, (user.totalScore || 0) - offAmt);
+  if (offeringType === "coins") user.coins = Math.max(0, (user.coins || 0) - offAmt);
+  if (offeringType === "stars") user.stars = Math.max(0, (user.stars || 0) - offAmt);
+
+  const newTrade: StoredTradeOffer = {
+    id: `trade_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    creatorId: user.id,
+    creatorName: user.name,
+    creatorUsername: user.username,
+    creatorAvatar: user.avatarUrl,
+    offeringType,
+    offeringAmount: offAmt,
+    requestingType,
+    requestingAmount: reqAmt,
+    note: String(note || "").trim().slice(0, 100),
+    status: "active",
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!(db as any).tradeOffers) (db as any).tradeOffers = [];
+  (db as any).tradeOffers.unshift(newTrade);
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+  broadcastWs({ type: "trade:created", trade: newTrade });
+
+  res.json({
+    success: true,
+    message: "Trade taklifingiz muvaffaqiyatli e'lon qilindi!",
+    trade: newTrade,
+    user: sanitizeUser(user),
+  });
+});
+
+app.post("/api/wallet/trade-accept", (req, res) => {
+  const { tradeId, userId } = req.body || {};
+  if (!userId) return res.status(401).json({ error: "Avval tizimga kiring!" });
+  const acceptor = db.users.find((u) => u.id === String(userId));
+  if (!acceptor) return res.status(404).json({ error: "Foydalanuvchi topilmadi!" });
+
+  const trade = ((db as any).tradeOffers || []).find(
+    (t: StoredTradeOffer) => t.id === String(tradeId) && t.status === "active"
+  );
+  if (!trade) return res.status(404).json({ error: "Ushbu trade topilmadi yoki allaqachon yakunlangan!" });
+
+  if (trade.creatorId === acceptor.id) {
+    return res.status(400).json({ error: "O'zingiz yaratgan tradeni qabul qila olmaysiz!" });
+  }
+
+  const creator = db.users.find((u) => u.id === trade.creatorId);
+  if (!creator) return res.status(404).json({ error: "Trade egasi topilmadi!" });
+
+  // Check acceptor has requesting amount
+  if (trade.requestingType === "points" && (acceptor.totalScore || 0) < trade.requestingAmount) {
+    return res.status(400).json({ error: `Qabul qilish uchun ${trade.requestingAmount} ball kerak!` });
+  }
+  if (trade.requestingType === "coins" && (acceptor.coins || 0) < trade.requestingAmount) {
+    return res.status(400).json({ error: `Qabul qilish uchun ${trade.requestingAmount} tanga kerak!` });
+  }
+  if (trade.requestingType === "stars" && (acceptor.stars || 0) < trade.requestingAmount) {
+    return res.status(400).json({ error: `Qabul qilish uchun ${trade.requestingAmount} yulduz kerak!` });
+  }
+
+  // Deduct from acceptor
+  if (trade.requestingType === "points") acceptor.totalScore = Math.max(0, (acceptor.totalScore || 0) - trade.requestingAmount);
+  if (trade.requestingType === "coins") acceptor.coins = Math.max(0, (acceptor.coins || 0) - trade.requestingAmount);
+  if (trade.requestingType === "stars") acceptor.stars = Math.max(0, (acceptor.stars || 0) - trade.requestingAmount);
+
+  // Give to creator
+  if (trade.requestingType === "points") creator.totalScore = (creator.totalScore || 0) + trade.requestingAmount;
+  if (trade.requestingType === "coins") creator.coins = (creator.coins || 0) + trade.requestingAmount;
+  if (trade.requestingType === "stars") creator.stars = (creator.stars || 0) + trade.requestingAmount;
+
+  // Give offered amount to acceptor
+  if (trade.offeringType === "points") acceptor.totalScore = (acceptor.totalScore || 0) + trade.offeringAmount;
+  if (trade.offeringType === "coins") acceptor.coins = (acceptor.coins || 0) + trade.offeringAmount;
+  if (trade.offeringType === "stars") acceptor.stars = (acceptor.stars || 0) + trade.offeringAmount;
+
+  trade.status = "completed";
+  trade.acceptedById = acceptor.id;
+  trade.acceptedByName = acceptor.name;
+
+  recalculateRanksAndRoles();
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+  broadcastWs({ type: "trade:completed", tradeId: trade.id });
+
+  createPlatformNotification({
+    title: "🤝 Trade Muvaffaqiyatli!",
+    text: `${acceptor.name} va ${creator.name} o'rtasida muvaffaqiyatli valyuta almashildi!`,
+    icon: "🔄",
+    tab: "shop",
+    userId: creator.id,
+  });
+
+  res.json({
+    success: true,
+    message: "Trade muvaffaqiyatli amalga oshirildi!",
+    user: sanitizeUser(acceptor),
+    users: allSanitized,
+  });
+});
+
+app.post("/api/wallet/transfer", (req, res) => {
+  const { senderId, targetUsername, currencyType, amount } = req.body || {};
+  if (!senderId) return res.status(401).json({ error: "Avval tizimga kiring!" });
+  const sender = db.users.find((u) => u.id === String(senderId));
+  if (!sender) return res.status(404).json({ error: "Yuboruvchi topilmadi!" });
+
+  const rawTarget = String(targetUsername || "").trim().replace(/^@+/, "").toLowerCase();
+  if (!rawTarget) return res.status(400).json({ error: "Qabul qiluvchi @username ni kiriting!" });
+
+  const target = db.users.find(
+    (u) =>
+      u.username.toLowerCase() === rawTarget ||
+      u.email.toLowerCase() === rawTarget ||
+      u.id === rawTarget
+  );
+  if (!target) return res.status(404).json({ error: `@${rawTarget} topilmadi!` });
+  if (target.id === sender.id) return res.status(400).json({ error: "O'zingizga o'zingiz o'tkaza olmaysiz!" });
+
+  const amt = Math.max(1, Math.floor(Number(amount) || 0));
+
+  if (currencyType === "points" && (sender.totalScore || 0) < amt) {
+    return res.status(400).json({ error: `Ball yetarli emas! Sizda ${sender.totalScore || 0} ball bor.` });
+  }
+  if (currencyType === "coins" && (sender.coins || 0) < amt) {
+    return res.status(400).json({ error: `Tanga yetarli emas! Sizda ${sender.coins || 0} tanga bor.` });
+  }
+  if (currencyType === "stars" && (sender.stars || 0) < amt) {
+    return res.status(400).json({ error: `Yulduz yetarli emas! Sizda ${sender.stars || 0} yulduz bor.` });
+  }
+
+  // Deduct from sender
+  if (currencyType === "points") sender.totalScore = Math.max(0, (sender.totalScore || 0) - amt);
+  if (currencyType === "coins") sender.coins = Math.max(0, (sender.coins || 0) - amt);
+  if (currencyType === "stars") sender.stars = Math.max(0, (sender.stars || 0) - amt);
+
+  // Add to target
+  if (currencyType === "points") target.totalScore = (target.totalScore || 0) + amt;
+  if (currencyType === "coins") target.coins = (target.coins || 0) + amt;
+  if (currencyType === "stars") target.stars = (target.stars || 0) + amt;
+
+  recalculateRanksAndRoles();
+  saveDb();
+
+  const allSanitized = db.users.map(sanitizeUser);
+  broadcastWs({ type: "users:updated", users: allSanitized });
+
+  createPlatformNotification({
+    title: "🎁 Valyuta Qabul Qilindi!",
+    text: `${sender.name} sizga ${amt} ${currencyType === 'points' ? 'Ball ⚡' : currencyType === 'coins' ? 'Tanga 🪙' : 'Yulduz ⭐'} o'tkazdi!`,
+    icon: "🪙",
+    tab: "shop",
+    userId: target.id,
+  });
+
+  res.json({
+    success: true,
+    message: `@${target.username} ga ${amt} ${currencyType} muvaffaqiyatli o'tkazildi!`,
+    user: sanitizeUser(sender),
+    users: allSanitized,
+  });
+});
+
+// ==========================================
 // REAL-TIME NOTIFICATIONS ENGINE
 // ==========================================
 app.get("/api/notifications", (_req, res) => {
@@ -4168,6 +4421,45 @@ app.delete("/api/chat/messages/:id", (req, res) => {
 // AUTHENTICATION ENDPOINTS (REAL USERS ONLY)
 // ==========================================
 
+// Single Active Session Concurrency Tracker ("bitta accountga bir paytning ozida ikkikishi kirib bolmasoin")
+export const activeUserSessions = new Map<string, { sessionToken: string; loggedInAt: string }>();
+
+export function issueSessionToken(userId: string): string {
+  const token = `sess_${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const existing = activeUserSessions.get(userId);
+  if (existing) {
+    // Force logout previous active session with security alert
+    broadcastWs({
+      type: "auth:force_logout",
+      userId,
+      newSessionToken: token,
+      reason: "Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!",
+    });
+  }
+  activeUserSessions.set(userId, { sessionToken: token, loggedInAt: new Date().toISOString() });
+  return token;
+}
+
+app.get("/api/auth/session-check", (req, res) => {
+  const userId = String(req.query.userId || "").trim();
+  const sessionToken = String(req.query.sessionToken || "").trim();
+  if (!userId) return res.json({ valid: true });
+  const active = activeUserSessions.get(userId);
+  if (!active) {
+    if (sessionToken) {
+      activeUserSessions.set(userId, { sessionToken, loggedInAt: new Date().toISOString() });
+    }
+    return res.json({ valid: true });
+  }
+  if (active.sessionToken === sessionToken) {
+    return res.json({ valid: true });
+  }
+  return res.status(409).json({
+    valid: false,
+    reason: "Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!",
+  });
+});
+
 app.post("/api/auth/register", (req, res) => {
   const {
     name,
@@ -4238,16 +4530,16 @@ app.post("/api/auth/register", (req, res) => {
     email: normalizedEmail,
     password: rawPassword,
     role: isOwnerAdmin ? "admin" : isCreator ? "creator" : "user",
-    rating: 0,
-    ratingTitle: computeRatingTitle(0),
+    rating: isOwnerAdmin ? 1500 : 0,
+    ratingTitle: computeRatingTitle(isOwnerAdmin ? 1500 : 0),
     rank: db.users.length + 1,
     solvedCount: 0,
     submissionsCount: 0,
-    totalScore: 0,
-    coins: 20,
-    stars: 1,
+    totalScore: isOwnerAdmin ? 996590 : 0,
+    coins: isOwnerAdmin ? 10000000 : 0,
+    stars: isOwnerAdmin ? 20 : 0,
     starColor: "blue",
-    starRankTitle: "Noob",
+    starRankTitle: isOwnerAdmin ? "Grandmaster" : "Boshlang'ich",
     scoreMultiplier: 1,
     bio: bio ? String(bio).trim() : "",
     region: region ? String(region).trim() : "Toshkent shahri",
@@ -4277,9 +4569,12 @@ app.post("/api/auth/register", (req, res) => {
   const allSanitized = db.users.map(sanitizeUser);
   broadcastWs({ type: "users:updated", users: allSanitized });
 
+  const sessionToken = issueSessionToken(newUser.id);
+
   res.status(201).json({
     success: true,
     user: sanitizeUser(newUser),
+    sessionToken,
     users: allSanitized,
   });
 });
@@ -4424,9 +4719,12 @@ app.post("/api/auth/login", (req, res) => {
   recalculateRanksAndRoles();
   saveDb();
 
+  const sessionToken = issueSessionToken(user.id);
+
   res.json({
     success: true,
     user: sanitizeUser(user),
+    sessionToken,
     users: db.users.map(sanitizeUser),
   });
 });
@@ -4541,16 +4839,16 @@ app.post("/api/auth/google-login", (req, res) => {
       email: normalizedEmail,
       password: "google_verified_oauth",
       role: isOwnerAdmin ? "admin" : isCreator ? "creator" : "user",
-      rating: 0,
-      ratingTitle: computeRatingTitle(0),
+      rating: isOwnerAdmin ? 1500 : 0,
+      ratingTitle: computeRatingTitle(isOwnerAdmin ? 1500 : 0),
       rank: db.users.length + 1,
       solvedCount: 0,
       submissionsCount: 0,
-      totalScore: 0,
-      coins: 25,
-      stars: 1,
+      totalScore: isOwnerAdmin ? 996590 : 0,
+      coins: isOwnerAdmin ? 10000000 : 0,
+      stars: isOwnerAdmin ? 20 : 0,
       starColor: "blue",
-      starRankTitle: "Noob",
+      starRankTitle: isOwnerAdmin ? "Grandmaster" : "Boshlang'ich",
       scoreMultiplier: 1,
       bio: "Rasmiy Google OAuth orqali tasdiqlangan hisob",
       region,
@@ -4579,10 +4877,13 @@ app.post("/api/auth/google-login", (req, res) => {
   const allSanitized = db.users.map(sanitizeUser);
   broadcastWs({ type: "users:updated", users: allSanitized });
 
+  const sessionToken = issueSessionToken(user.id);
+
   res.json({
     success: true,
     verifiedByGoogle: Boolean(idToken),
     user: sanitizeUser(user),
+    sessionToken,
     users: allSanitized,
   });
 });
@@ -5051,10 +5352,13 @@ app.post("/api/auth/face-login", (req, res) => {
     });
   }
 
+  const sessionToken = issueSessionToken(user.id);
+
   res.json({
     success: true,
     similarityPct,
     user: sanitizeUser(user),
+    sessionToken,
     users: allSanitized,
     message: newPassword
       ? "Yangi parol saqlandi va Face ID orqali tizimga kirildi!"
@@ -5173,9 +5477,16 @@ app.post("/api/auth/sync", (req, res) => {
     found = newUser;
   }
 
+  const incomingToken = String(req.body?.sessionToken || "").trim();
+  const currentSession = activeUserSessions.get(found.id);
+  const sessionToken = currentSession && currentSession.sessionToken === incomingToken
+    ? incomingToken
+    : issueSessionToken(found.id);
+
   res.json({
     success: true,
     user: sanitizeUser(found),
+    sessionToken,
     users: db.users.map(sanitizeUser),
   });
 });

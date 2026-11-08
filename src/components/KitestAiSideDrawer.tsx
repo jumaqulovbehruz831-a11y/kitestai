@@ -223,15 +223,18 @@ export const KitestAiSideDrawer: React.FC<KitestAiSideDrawerProps> = ({
                 {/* 3D Robot Mascot Icon */}
                 <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-purple-600 p-0.5 shadow-md shadow-cyan-500/20 shrink-0">
                   <div className="w-full h-full rounded-2xl bg-[#070b14] flex items-center justify-center overflow-hidden">
-                    <img
-                      src="/assets/aistudio/file_000000003568821099a576100a447aeb_93e3c615.png"
-                      alt="AI Robot"
-                      className="w-full h-full object-cover scale-110"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <Bot className="w-5 h-5 text-cyan-400" />
+                    <svg viewBox="0 0 40 40" className="w-8 h-8" fill="none">
+                      {/* Mortarboard cap */}
+                      <polygon points="20,4 34,9 20,14 6,9" fill="#0f172a" stroke="#334155" strokeWidth="0.8" />
+                      <line x1="20" y1="9" x2="13" y2="12" stroke="#fbbf24" strokeWidth="1" />
+                      <circle cx="13" cy="13" r="1.5" fill="#fbbf24" />
+                      {/* Robot Head */}
+                      <rect x="8" y="13" width="24" height="20" rx="9" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.8" />
+                      <rect x="11" y="16" width="18" height="13" rx="5" fill="#020617" stroke="#38bdf8" strokeWidth="0.8" />
+                      {/* Cyan Smiling Eyes */}
+                      <path d="M 14 22 Q 16 19, 18 22" stroke="#38bdf8" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+                      <path d="M 22 22 Q 24 19, 26 22" stroke="#38bdf8" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+                    </svg>
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#070b14]" />
                 </div>

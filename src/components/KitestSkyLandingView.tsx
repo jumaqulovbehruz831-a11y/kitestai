@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { User, TestItem } from '../types';
 import { NavTab } from './Navbar';
 import { KitestKiteLogo } from './KitestKiteLogo';
+import { Kitest3DRobotHeroScene } from './Kitest3DRobotHeroScene';
 import {
   Trophy,
   FileText,
@@ -311,42 +312,12 @@ export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
             </div>
           </div>
 
-          {/* Right Column: High-Definition 3D Robot & Interactive Tablet Showcase (100% Matching Image 2) */}
+          {/* Right Column: Code-Rendered 3D Robot & Interactive Tablet Showcase (100% Matching Image 1) */}
           <div className="lg:col-span-7 relative flex items-center justify-center min-h-[460px] sm:min-h-[520px]">
-            {/* Ambient Cosmic Radial Glow */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-96 h-96 rounded-full bg-cyan-500/20 blur-3xl" />
-              <div className="w-[500px] h-[500px] rounded-full bg-indigo-600/20 blur-[100px]" />
-            </div>
-
-            {/* Floating 3D Artwork Container */}
-            <motion.div
-              animate={{
-                y: [-6, 6, -6],
-              }}
-              transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative z-10 w-full max-w-2xl rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.35)] bg-gradient-to-tr from-[#060a17] via-[#09102a] to-[#0d163a] group cursor-pointer"
-              onClick={() => onNavigateTab('contests')}
-            >
-              <img
-                src="/assets/aistudio/file_000000003568821099a576100a447aeb_93e3c615.png"
-                alt="KITESTAI 3D Robot Mascot"
-                className="w-full h-auto object-cover transform scale-100 group-hover:scale-[1.02] transition-transform duration-500"
-              />
-
-              {/* Clickable interactive hotspot overlay on the Tablet's Boshlash button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateTab('contests');
-                }}
-                className="absolute right-[8%] sm:right-[10%] top-[45%] sm:top-[48%] py-2 sm:py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/50 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <span>Boshlash</span>
-                <span>➔</span>
-              </button>
-            </motion.div>
+            <Kitest3DRobotHeroScene
+              onNavigateTab={onNavigateTab}
+              onOpenAuth={onOpenAuth}
+            />
           </div>
         </div>
 

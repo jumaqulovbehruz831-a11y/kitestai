@@ -220,7 +220,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     searchQuery,
   ]);
 
-  // RoboContest-style Institutional Ranking (Muassasalar Reytingi)
+  // KITEST-style Institutional Ranking (Muassasalar Reytingi)
   const institutionStats = useMemo(() => {
     const map: Record<
       string,
@@ -825,7 +825,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             </div>
           )}
 
-          {/* Clean RoboContest-Style Users Data Table */}
+          {/* Clean KITEST-Style Users Data Table */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -994,7 +994,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       )}
 
       {/* ========================================== */}
-      {/* TAB 3: MUASSASALAR REYTINGI (ROBOCONTEST)  */}
+      {/* TAB 3: MUASSASALAR REYTINGI (KITEST)  */}
       {/* ========================================== */}
       {activeTab === 'institutions' && (
         <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
@@ -1267,7 +1267,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   </div>
                 )}
 
-                {/* 4 RoboContest Stat Cards matching Screenshot 8 */}
+                {/* 4 KITEST Stat Cards matching Screenshot 8 */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30">
                     <div className="text-[10px] text-slate-400">Musobaqa reytingi</div>

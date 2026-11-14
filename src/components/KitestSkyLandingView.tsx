@@ -15,6 +15,7 @@ import {
   Camera,
   Shield,
   Sun,
+  Moon,
   Bell,
   Sparkles,
   Compass,
@@ -28,6 +29,8 @@ import {
 interface KitestSkyLandingViewProps {
   currentUser: User | null;
   isAdminUnlocked?: boolean;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
   tests: TestItem[];
   users: User[];
   onOpenAuth: (mode: 'login' | 'register') => void;
@@ -40,6 +43,8 @@ interface KitestSkyLandingViewProps {
 
 export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
   currentUser,
+  theme = 'dark',
+  onToggleTheme,
   onOpenAuth,
   onOpenFaceId,
   onOpenIncognito,
@@ -172,13 +177,20 @@ export const KitestSkyLandingView: React.FC<KitestSkyLandingViewProps> = ({
 
           {/* Right Actions: Theme Toggle, Bell 2, Avatar / Login */}
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              title="Mavzu rejimi"
-              className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-amber-400 transition-colors cursor-pointer"
-            >
-              <Sun className="w-4 h-4" />
-            </button>
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                title={theme === 'light' ? "Tun rejimiga o'tish" : "Kun rejimiga o'tish"}
+                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-amber-400 transition-colors cursor-pointer"
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                ) : (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                )}
+              </button>
+            )}
 
             <button
               type="button"

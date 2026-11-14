@@ -134,7 +134,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
     } catch {}
   };
 
-  // Build RoboContest / ICPC Standings Table for activeContest
+  // Build KITEST / ICPC Standings Table for activeContest
   const contestTests = useMemo(() => {
     if (!activeContest) return tests;
     const found = activeContest.testIds
@@ -181,7 +181,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
       <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
         <div>
           <div className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-1">
-            ROBOCONTEST OLIMPIADA TIZIMI · ICPC STANDINGS VA VIRTUAL MUSOBAQA
+            KITEST OLIMPIADA TIZIMI · ICPC STANDINGS VA VIRTUAL MUSOBAQA
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">
             Olimpiadalar, Turnir Jadvali (A, B, C, D) va Virtual Qatnashish
@@ -374,7 +374,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
             })}
           </div>
 
-          {/* Right 8 Cols: RoboContest Contest Workspace (Topshiriqlar | Turnir Jadvali | Virtual Olimpiada) */}
+          {/* Right 8 Cols: KITEST Contest Workspace (Topshiriqlar | Turnir Jadvali | Virtual Olimpiada) */}
           {activeContest && (
             <div className="lg:col-span-8 p-6 rounded-2xl bg-slate-900/95 border border-slate-800 space-y-5 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
@@ -387,7 +387,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                   </h2>
                 </div>
 
-                {/* RoboContest 3 Tabs */}
+                {/* KITEST 3 Tabs */}
                 <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
                   <button
                     type="button"
@@ -538,7 +538,7 @@ export const ContestView: React.FC<ContestViewProps> = ({
                     Virtual Olimpiada Rejimi ({activeContest.durationMinutes} daqiqa)
                   </h3>
                   <p className="text-xs text-slate-300 max-w-md mx-auto">
-                    RoboContest kabi istalgan olimpiadani o‘zingizga qulay vaqtda shaxsiy taymer bilan boshlang va natijangizni Turnir Jadvalida qayd eting!
+                    Istalgan istalgan olimpiadani o‘zingizga qulay vaqtda shaxsiy taymer bilan boshlang va natijangizni Turnir Jadvalida qayd eting!
                   </p>
                   <button
                     type="button"

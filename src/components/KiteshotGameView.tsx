@@ -33,6 +33,7 @@ import {
   Eye,
   Camera,
   Compass,
+  ExternalLink,
 } from 'lucide-react';
 
 interface KiteshotGameViewProps {
@@ -125,7 +126,7 @@ export const KiteshotGameView: React.FC<KiteshotGameViewProps> = ({
   onRequireLogin,
   onOpenPremium,
 }) => {
-  const [activeMode, setActiveMode] = useState<'kiteshot' | 'iq_memory'>('kiteshot');
+  const [activeMode, setActiveMode] = useState<'fortzone' | 'kiteshot' | 'iq_memory'>('fortzone');
   const [inGame, setInGame] = useState(false);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number>(0);
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
@@ -1981,11 +1982,30 @@ export const KiteshotGameView: React.FC<KiteshotGameViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Mode Switcher Tabs */}
-      <div className="p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 max-w-md mx-auto">
+      <div className="p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5 max-w-2xl mx-auto">
         <button
           type="button"
-          onClick={() => setActiveMode('kiteshot')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          onClick={() => {
+            setActiveMode('fortzone');
+            setInGame(false);
+          }}
+          className={`flex-1 min-w-[170px] py-2.5 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeMode === 'fortzone'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-lg font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-950" />
+          <span>FORTZONE BATTLE ROYALE</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveMode('kiteshot');
+            setInGame(false);
+          }}
+          className={`flex-1 min-w-[160px] py-2.5 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeMode === 'kiteshot'
               ? 'bg-blue-600 text-white shadow-md'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -2001,7 +2021,7 @@ export const KiteshotGameView: React.FC<KiteshotGameViewProps> = ({
             setActiveMode('iq_memory');
             setInGame(false);
           }}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 min-w-[150px] py-2.5 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeMode === 'iq_memory'
               ? 'bg-purple-600 text-white shadow-md'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -2011,6 +2031,60 @@ export const KiteshotGameView: React.FC<KiteshotGameViewProps> = ({
           <span>3D XOTIRA & IQ MATRIX</span>
         </button>
       </div>
+
+      {activeMode === 'fortzone' && (
+        <div className="relative rounded-3xl overflow-hidden bg-slate-950 border border-amber-500/30 shadow-2xl flex flex-col justify-between select-none">
+          {/* Top Bar Header */}
+          <div className="p-4 sm:px-6 bg-slate-950/90 backdrop-blur-md border-b border-amber-500/20 flex flex-wrap items-center justify-between gap-4 z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400 flex items-center justify-center font-black shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+                <Flame className="w-6 h-6 text-amber-400 animate-pulse" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                  <span>KITESTSHOT — FORTZONE BATTLE ROYALE</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    CRAZYGAMES 3D LIVE
+                  </span>
+                </h2>
+                <div className="text-xs text-slate-400">
+                  <span>
+                    Jonli multiplayer Battle Royale otishma o'yini |{' '}
+                    {currentUser ? (
+                      <strong className="text-amber-300">@{currentUser.username}</strong>
+                    ) : (
+                      'Barcha uchun ochiq'
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <a
+                href="https://www.crazygames.com/game/fortzone-battle-royale-xkd?instantJoin=true"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>To'liq ekranda ochish</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Fortzone Battle Royale iFrame */}
+          <div className="relative w-full h-[660px] sm:h-[720px] bg-black">
+            <iframe
+              src="https://www.crazygames.com/game/fortzone-battle-royale-xkd?instantJoin=true"
+              className="w-full h-full border-0"
+              allow="autoplay; fullscreen; camera; focus-without-user-activation; screen-wake-lock; gamepad"
+              sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-presentation allow-scripts allow-same-origin"
+              title="Kitestshot Fortzone Battle Royale"
+            />
+          </div>
+        </div>
+      )}
 
       {activeMode === 'kiteshot' && (
         <div className="relative rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl min-h-[600px] flex flex-col justify-between select-none">

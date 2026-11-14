@@ -57,7 +57,7 @@ export const UzbekistanRegionsModal: React.FC<UzbekistanRegionsModalProps> = ({
           <div className="px-6 py-4 bg-[#0e1628]/95 border-b border-cyan-500/20 flex flex-wrap items-center justify-between gap-4 shrink-0">
             <div>
               <div className="text-xs font-mono uppercase text-cyan-400 font-bold tracking-wider">
-                ROBOCONTEST GEOGRAFIYASI
+                KITEST GEOGRAFIYASI
               </div>
               <h2 className="text-lg sm:text-xl font-black text-white">
                 Hududlar bo'yicha foydalanuvchilar statistikasi

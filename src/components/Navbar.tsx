@@ -417,9 +417,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             onClick={onToggleTheme}
             className="w-8 h-8 rounded-full bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700/80 flex items-center justify-center transition-all cursor-pointer shadow-xs"
-            title="Mavzu rejimi"
+            title={theme === 'light' ? "Tun rejimiga o'tish" : "Kun rejimiga o'tish"}
           >
-            <Sun className="w-4 h-4 text-amber-400" />
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 text-indigo-400" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-400" />
+            )}
           </button>
         )}
 

@@ -6,6 +6,14 @@ import { createServer as createViteServer } from "vite";
 import { WebSocketServer, WebSocket } from "ws";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
+import { getOrCreateSqlUser } from "./src/db/users.ts";
+import {
+  getUserNotesByUid,
+  createNoteForSqlUser,
+  updateNoteForSqlUser,
+  deleteNoteForSqlUser,
+} from "./src/db/notes.ts";
 
 dotenv.config();
 
@@ -853,7 +861,7 @@ function getDefaultBooks(): StoredBook3DItem[] {
       authorName: "Behruz Jumaqulov",
       authorEmail: ADMIN_EMAIL,
       coverColor: "from-emerald-600 via-teal-700 to-slate-900",
-      coverSubtitle: "ROBOCONTEST VA ICPC DASTURCHILARI UCHUN",
+      coverSubtitle: "KITEST VA ICPC DASTURCHILARI UCHUN",
       description: "Tezkor qidiruv, Dinamik dasturlash, Graflar nazariyasi va murakkablikni baholash (Big-O) bo'yicha 3D kitob.",
       viewsCount: 62,
       likesUserIds: [],
@@ -3206,11 +3214,11 @@ PLATFORMA HAQIDAGI ENG SO'NGGI MA'LUMOTLAR:
           .slice(0, 5)
           .map((u, i) => `${i + 1}. ${u.name} (@${u.username}) - ${u.totalScore} ball, reyting: ~${u.rating || 1500}, ${u.region || 'Buxoro'}`)
           .join("; ")}
-- Platformaning asosiy modullari: Kitest 3D Duel, RoboContest Algoritmik Masalalar va IDE, Fan Olimpiadalari, Kiteshot o'yini, Omad barabani, Hududlar bo'yicha statistika.
+- Platformaning asosiy modullari: Kitest 3D Duel, KITEST Algoritmik Masalalar va IDE, Fan Olimpiadalari, Kiteshot o'yini, Omad barabani, Hududlar bo'yicha statistika.
 
 QAT'IY QOIDALAR:
 1. MAXFIYLIK: Foydalanuvchilar parollari, Face ID deskriptorlari yoki maxfiy kalitlarni HECH QACHON oshkor qilma. Agar kimdir parol so'rasa: "Xavfsizlik qoidalariga binoan hisob parollari va shaxsiy ma'lumotlar maxfiy saqlanadi." deb javob ber.
-2. TA'LIM: Barcha savollarga (Matematika, Fizika, Kimyo, Biologiya, Tarix, Ingliz tili, Informatika, Python, C++, Algoritmlar, RoboContest, CHSB/BHM) 100% to'g'ri, bosqichma-bosqich, chiroyli Markdown formatlangan va do'stona o'zbek tilida chaqqon javob ber.
+2. TA'LIM: Barcha savollarga (Matematika, Fizika, Kimyo, Biologiya, Tarix, Ingliz tili, Informatika, Python, C++, Algoritmlar, KITEST, CHSB/BHM) 100% to'g'ri, bosqichma-bosqich, chiroyli Markdown formatlangan va do'stona o'zbek tilida chaqqon javob ber.
 3. KOD: Dasturlash kodlarini to'liq va sintaksis bloklarida taqdim et.`,
       },
     });
@@ -3624,6 +3632,65 @@ app.post("/api/wallet/transfer", (req, res) => {
     user: sanitizeUser(sender),
     users: allSanitized,
   });
+});
+
+// Real-time Roblox-style Live Invitation Endpoint ("online odamlarga chaqiruv tashlash")
+app.post("/api/wallet/invite-user", (req, res) => {
+  const { senderId, targetUserId, inviteType = "trade", note } = req.body || {};
+  if (!senderId) return res.status(401).json({ error: "Avval tizimga kiring!" });
+  const sender = db.users.find((u) => u.id === String(senderId));
+  if (!sender) return res.status(404).json({ error: "Yuboruvchi topilmadi!" });
+
+  const target = db.users.find((u) => u.id === String(targetUserId) || u.username.toLowerCase() === String(targetUserId).toLowerCase());
+  if (!target) return res.status(404).json({ error: "Taklif etilayotgan foydalanuvchi topilmadi!" });
+  if (target.id === sender.id) return res.status(400).json({ error: "O'zingizga taklif yubora olmaysiz!" });
+
+  const invitePayload = {
+    id: `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    senderId: sender.id,
+    senderName: sender.name,
+    senderUsername: sender.username,
+    senderAvatar: sender.avatarUrl,
+    senderRole: sender.role,
+    targetUserId: target.id,
+    targetUsername: target.username,
+    inviteType: inviteType === "duel" ? "duel" : "trade",
+    note: String(note || "").slice(0, 80),
+    timestamp: new Date().toISOString(),
+  };
+
+  // Broadcast real-time incoming invite over WebSocket to target user
+  broadcastWs({
+    type: "invite:incoming",
+    invite: invitePayload,
+  });
+
+  createPlatformNotification({
+    title: inviteType === "duel" ? "⚔️ Jonli 1v1 Duelga Chaqiruv!" : "🤝 Jonli Trade Taklifi!",
+    text: `${sender.name} (@${sender.username}) sizni ${inviteType === 'duel' ? '1v1 Bellashuv' : 'P2P Trade'} ga taklif qilmoqda!`,
+    icon: inviteType === "duel" ? "⚔️" : "🤝",
+    tab: inviteType === "duel" ? "duels" : "shop",
+    userId: target.id,
+  });
+
+  res.json({
+    success: true,
+    message: `@${target.username} ga jonli chaqiruv muvaffaqiyatli yuborildi!`,
+    invite: invitePayload,
+  });
+});
+
+app.post("/api/wallet/invite-respond", (req, res) => {
+  const { inviteId, senderId, targetUserId, accepted } = req.body || {};
+  broadcastWs({
+    type: "invite:response",
+    inviteId,
+    senderId,
+    targetUserId,
+    accepted: Boolean(accepted),
+    timestamp: new Date().toISOString(),
+  });
+  res.json({ success: true, accepted: Boolean(accepted) });
 });
 
 // ==========================================
@@ -4792,6 +4859,7 @@ app.post("/api/auth/google-login", (req, res) => {
   const district = req.body?.district ? String(req.body.district).trim() : "Yunusobod tumani";
   const institution = req.body?.institution ? String(req.body.institution).trim() : "KITEST Ishtirokchisi";
 
+  let verifiedByGoogle = false;
   // Verify JWT payload from Firebase Google Auth idToken if provided
   if (idToken && idToken.split(".").length === 3) {
     try {
@@ -4799,6 +4867,7 @@ app.post("/api/auth/google-login", (req, res) => {
       const decoded = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8"));
       if (decoded && decoded.email) {
         rawEmail = String(decoded.email).trim().toLowerCase();
+        verifiedByGoogle = true;
       }
       if (decoded && decoded.name && !rawName) {
         rawName = String(decoded.name).trim();
@@ -4819,6 +4888,19 @@ app.post("/api/auth/google-login", (req, res) => {
 
   const normalizedEmail = rawEmail.includes("@") ? rawEmail : `${rawEmail}@gmail.com`;
   let user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+
+  // Strict check: Require verified Google JWT token when signing into Admin or existing accounts
+  if (normalizedEmail === ADMIN_EMAIL && !verifiedByGoogle) {
+    return res.status(403).json({
+      error: "❌ Xavfsizlik: Bosh Admin hisobiga faqat rasmiy tasdiqlangan Google OAuth tokeni orqali kirish mumkin!",
+    });
+  }
+
+  if (user && user.password && user.password !== "google_verified_oauth" && !verifiedByGoogle) {
+    return res.status(403).json({
+      error: "❌ Xavfsizlik: Ushbu hisob mavjud va parol bilan himoyalangan. Begona hisobga Google orqali kirish taqiqlanadi!",
+    });
+  }
 
   if (!user) {
     const baseUsername =
@@ -4881,7 +4963,7 @@ app.post("/api/auth/google-login", (req, res) => {
 
   res.json({
     success: true,
-    verifiedByGoogle: Boolean(idToken),
+    verifiedByGoogle,
     user: sanitizeUser(user),
     sessionToken,
     users: allSanitized,
@@ -5233,7 +5315,13 @@ app.post("/api/auth/face-login", (req, res) => {
         });
       }
     } else if (adminUser) {
-      // If behruz_admin hasn't saved a Face ID yet, save on 1st scan
+      // First-time enrollment of admin face requires admin passcode verification
+      const incomingPasscode = String(req.body?.passcode || req.body?.password || "").trim();
+      if (incomingPasscode !== "23291031sila" && incomingPasscode !== adminUser.password) {
+        return res.status(403).json({
+          error: "❌ Xavfsizlik: Bosh Admin Face ID birinchi marta saqlanishi uchun Admin maxfiy kodi (23291031sila) kiritilishi shart!",
+        });
+      }
       (adminUser as any).faceDescriptor = faceDescriptor;
       adminUser.faceIdEnabled = true;
       if (faceIdDataUrl && faceIdDataUrl.startsWith("data:image")) {
@@ -5277,7 +5365,26 @@ app.post("/api/auth/face-login", (req, res) => {
       : [];
 
     if (storedDescriptor.length < 64) {
-      // First-time Face ID setup for this account: save on 1st scan and unlock!
+      // First-time Face ID setup for an existing account: require password verification!
+      const inputPass = String(req.body?.password || req.body?.currentPassword || "").trim();
+      const isOwnerAdmin =
+        user.email.toLowerCase() === ADMIN_EMAIL ||
+        user.username.toLowerCase() === "behruz_admin";
+
+      if (isOwnerAdmin) {
+        if (inputPass !== "23291031sila" && inputPass !== user.password) {
+          return res.status(403).json({
+            error: "❌ Xavfsizlik: Bosh Admin hisobiga Face ID ulash uchun Admin maxfiy kodi (23291031sila) kiritilishi shart!",
+          });
+        }
+      } else if (user.password && user.password !== "google_verified_oauth") {
+        if (!inputPass || inputPass !== user.password) {
+          return res.status(401).json({
+            error: `❌ Xavfsizlik: @${user.username} hisobiga ilk bor Face ID ulash uchun hisobingiz parolini kiritishingiz shart! Begona shaxslar Face ID ulay olmaydi.`,
+          });
+        }
+      }
+
       (user as any).faceDescriptor = faceDescriptor;
       user.faceIdEnabled = true;
       if (faceIdDataUrl && faceIdDataUrl.startsWith("data:image")) {
@@ -5320,12 +5427,12 @@ app.post("/api/auth/face-login", (req, res) => {
       }
     }
 
-    if (bestUser && highestSim >= 75) {
+    if (bestUser && highestSim >= 78) {
       user = bestUser;
       similarityPct = highestSim;
     } else {
       return res.status(404).json({
-        error: "Ushbu yuz bilan saqlangan Face ID topilmadi! Iltimos, o'z hisobingiz nomini (@username) kiriting va yuzingizni ulang.",
+        error: "Ushbu yuz bilan saqlangan Face ID topilmadi! Iltimos, o'z hisobingiz nomini (@username) kiriting va parolingiz bilan yuzingizni ulang.",
         needLoginInput: true,
       });
     }
@@ -9151,6 +9258,348 @@ app.delete("/api/books/:id", (req, res) => {
   db.books = db.books.filter((b) => b.id !== req.params.id);
   saveDb();
   res.json({ success: true, books: db.books });
+});
+
+// ==========================================
+// USERNAME CHECK & PROFILE LOOKUP ROUTES
+// ==========================================
+app.get("/api/auth/check-username/:username", (req, res) => {
+  const clean = String(req.params.username || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/\s+/g, "_");
+  if (!clean || clean.length < 3) {
+    return res.json({ available: false, reason: "Username kamida 3 ta belgidan iborat bo'lishi kerak" });
+  }
+  if (!/^[a-z0-9_]{3,28}$/.test(clean)) {
+    return res.json({
+      available: false,
+      reason: "Faqat lotin harflari (a-z), raqamlar (0-9) va pastki chiziq (_) ishlatilishi mumkin",
+    });
+  }
+  const excludeId = req.query.excludeUserId ? String(req.query.excludeUserId) : "";
+  const taken = db.users.some(
+    (u) => u.id !== excludeId && u.username.toLowerCase() === clean
+  );
+  return res.json({
+    available: !taken,
+    normalized: clean,
+    reason: taken ? `@${clean} username allaqachon band!` : undefined,
+  });
+});
+
+app.get("/api/users/by-username/:username", (req, res) => {
+  const clean = decodeURIComponent(String(req.params.username || ""))
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase();
+  if (!clean) {
+    return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
+  }
+  const user = db.users.find((u) => u.username.toLowerCase() === clean);
+  if (!user) {
+    return res.status(404).json({ error: `@${clean} foydalanuvchisi topilmadi` });
+  }
+  return res.json({ success: true, user: sanitizeUser(user) });
+});
+
+// ==========================================
+// CLOUD SQL NOTES (KEEP-STYLE) ROUTES (Protected by Firebase Auth)
+// ==========================================
+app.get("/api/workspace/notes", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || `${uid}@gmail.com`;
+    await getOrCreateSqlUser({
+      uid,
+      email,
+      name: (req.user as any)?.name || email.split("@")[0],
+      avatarUrl: (req.user as any)?.picture || "",
+    });
+    const list = await getUserNotesByUid(uid);
+    res.json({ success: true, notes: list });
+  } catch (error: any) {
+    console.error("Failed to fetch Cloud SQL notes:", error);
+    res.status(500).json({ error: error.message || "Eslatmalarni yuklashda xatolik" });
+  }
+});
+
+app.post("/api/workspace/notes", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || `${uid}@gmail.com`;
+    const sqlUser = await getOrCreateSqlUser({
+      uid,
+      email,
+      name: (req.user as any)?.name || email.split("@")[0],
+      avatarUrl: (req.user as any)?.picture || "",
+    });
+    const title = String(req.body?.title || "").trim();
+    const content = String(req.body?.content || "").trim();
+    const color = String(req.body?.color || "slate").trim();
+    const isPinned = Boolean(req.body?.isPinned);
+    const driveFileId = String(req.body?.driveFileId || "").trim();
+    if (!title && !content) {
+      return res.status(400).json({ error: "Eslatma sarlavhasi yoki matnini kiriting!" });
+    }
+    const created = await createNoteForSqlUser(sqlUser.id, {
+      title: title || "Sarlavhasiz eslatma",
+      content,
+      color,
+      isPinned,
+      driveFileId,
+    });
+    res.status(201).json({ success: true, note: created });
+  } catch (error: any) {
+    console.error("Failed to create Cloud SQL note:", error);
+    res.status(500).json({ error: error.message || "Eslatmani saqlashda xatolik" });
+  }
+});
+
+app.put("/api/workspace/notes/:id", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || `${uid}@gmail.com`;
+    const sqlUser = await getOrCreateSqlUser({ uid, email });
+    const noteId = Number(req.params.id);
+    if (!noteId || isNaN(noteId)) {
+      return res.status(400).json({ error: "Noto'g'ri eslatma ID" });
+    }
+    const updated = await updateNoteForSqlUser(noteId, sqlUser.id, {
+      title: req.body?.title !== undefined ? String(req.body.title).trim() : undefined,
+      content: req.body?.content !== undefined ? String(req.body.content).trim() : undefined,
+      color: req.body?.color !== undefined ? String(req.body.color).trim() : undefined,
+      isPinned: req.body?.isPinned !== undefined ? Boolean(req.body.isPinned) : undefined,
+      driveFileId: req.body?.driveFileId !== undefined ? String(req.body.driveFileId).trim() : undefined,
+    });
+    if (!updated) {
+      return res.status(404).json({ error: "Eslatma topilmadi" });
+    }
+    res.json({ success: true, note: updated });
+  } catch (error: any) {
+    console.error("Failed to update Cloud SQL note:", error);
+    res.status(500).json({ error: error.message || "Eslatmani yangilashda xatolik" });
+  }
+});
+
+app.delete("/api/workspace/notes/:id", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const email = req.user!.email || `${uid}@gmail.com`;
+    const sqlUser = await getOrCreateSqlUser({ uid, email });
+    const noteId = Number(req.params.id);
+    if (!noteId || isNaN(noteId)) {
+      return res.status(400).json({ error: "Noto'g'ri eslatma ID" });
+    }
+    const deleted = await deleteNoteForSqlUser(noteId, sqlUser.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Eslatma topilmadi" });
+    }
+    res.json({ success: true, deletedId: noteId });
+  } catch (error: any) {
+    console.error("Failed to delete Cloud SQL note:", error);
+    res.status(500).json({ error: error.message || "Eslatmani o'chirishda xatolik" });
+  }
+});
+
+// ==========================================
+// GOOGLE WORKSPACE PROXY ROUTES (Drive, Gmail, Keep)
+// ==========================================
+app.get("/api/workspace/drive/files", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const q = req.query.q ? String(req.query.q) : "trashed = false";
+    const url = `https://www.googleapis.com/drive/v3/files?pageSize=25&fields=files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink)&q=${encodeURIComponent(q)}&orderBy=modifiedTime desc`;
+    const apiRes = await fetch(url, { headers: { Authorization: token } });
+    const data = await apiRes.json();
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: data?.error?.message || "Drive API xatoligi", details: data });
+    }
+    res.json({ success: true, files: data.files || [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Google Drive bilan aloqa xatoligi" });
+  }
+});
+
+app.post("/api/workspace/drive/files", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const name = String(req.body?.name || `KITEST_Note_${Date.now()}.txt`).trim();
+    const content = String(req.body?.content || "");
+    const metadata = { name, mimeType: "text/plain" };
+    const boundary = "kitest_drive_boundary_2026";
+    const multipartBody =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      JSON.stringify(metadata) +
+      `\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n` +
+      content +
+      `\r\n--${boundary}--`;
+
+    const apiRes = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,modifiedTime,webViewLink",
+      {
+        method: "POST",
+        headers: {
+          Authorization: token,
+          "Content-Type": `multipart/related; boundary=${boundary}`,
+        },
+        body: multipartBody,
+      }
+    );
+    const data = await apiRes.json();
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: data?.error?.message || "Drive fayl yaratishda xatolik" });
+    }
+    res.status(201).json({ success: true, file: data });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Google Drive yuklash xatoligi" });
+  }
+});
+
+app.delete("/api/workspace/drive/files/:fileId", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const apiRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(req.params.fileId)}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: token },
+      }
+    );
+    if (!apiRes.ok) {
+      const data = await apiRes.json().catch(() => ({}));
+      return res.status(apiRes.status).json({ error: data?.error?.message || "Drive faylini o'chirib bo'lmadi" });
+    }
+    res.json({ success: true, deletedId: req.params.fileId });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Google Drive o'chirish xatoligi" });
+  }
+});
+
+app.get("/api/workspace/gmail/messages", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const q = req.query.q ? `&q=${encodeURIComponent(String(req.query.q))}` : "";
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=12${q}`,
+      { headers: { Authorization: token } }
+    );
+    const listData = await listRes.json();
+    if (!listRes.ok) {
+      return res.status(listRes.status).json({ error: listData?.error?.message || "Gmail API xatoligi" });
+    }
+    const items = Array.isArray(listData.messages) ? listData.messages.slice(0, 12) : [];
+    const detailed = await Promise.all(
+      items.map(async (m: any) => {
+        try {
+          const msgRes = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+            { headers: { Authorization: token } }
+          );
+          if (!msgRes.ok) return null;
+          const msg = await msgRes.json();
+          const headers = Array.isArray(msg.payload?.headers) ? msg.payload.headers : [];
+          const getHeader = (name: string) =>
+            headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
+          return {
+            id: msg.id,
+            threadId: msg.threadId,
+            snippet: msg.snippet || "",
+            subject: getHeader("Subject") || "(Mavzusiz)",
+            from: getHeader("From") || "Noma'lum",
+            date: getHeader("Date") || "",
+            labelIds: msg.labelIds || [],
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+    res.json({ success: true, messages: detailed.filter(Boolean) });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Gmail bilan bog'lanishda xatolik" });
+  }
+});
+
+app.post("/api/workspace/gmail/send", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const to = String(req.body?.to || "").trim();
+    const subject = String(req.body?.subject || "").trim();
+    const bodyText = String(req.body?.body || "").trim();
+    if (!to || !subject || !bodyText) {
+      return res.status(400).json({ error: "Qabul qiluvchi (To), mavzu va xabar matni kiritilishi shart!" });
+    }
+    const utf8Subject = `=?utf-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+    const rawEmail = [
+      `To: ${to}`,
+      `Subject: ${utf8Subject}`,
+      "MIME-Version: 1.0",
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      bodyText,
+    ].join("\r\n");
+    const encodedMessage = Buffer.from(rawEmail, "utf8")
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    const apiRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw: encodedMessage }),
+    });
+    const data = await apiRes.json();
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: data?.error?.message || "Email yuborishda xatolik" });
+    }
+    res.json({ success: true, message: data });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Gmail yuborish xatoligi" });
+  }
+});
+
+app.post("/api/workspace/gmail/messages/:id/trash", async (req, res) => {
+  const token = req.headers.authorization;
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Google Workspace access token talab qilinadi" });
+  }
+  try {
+    const apiRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(req.params.id)}/trash`,
+      {
+        method: "POST",
+        headers: { Authorization: token },
+      }
+    );
+    const data = await apiRes.json().catch(() => ({}));
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: data?.error?.message || "Xabarni o'chirib bo'lmadi" });
+    }
+    res.json({ success: true, id: req.params.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || "Gmail xabarini o'chirishda xatolik" });
+  }
 });
 
 // ==========================================

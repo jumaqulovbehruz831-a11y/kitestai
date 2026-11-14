@@ -363,7 +363,7 @@ const DUEL_QUESTION_POOL: DuelQuestion[] = [
   },
 ];
 
-interface RoboContestHubViewsProps {
+interface KITESTHubViewsProps {
   currentUser: User | null;
   users: User[];
   submissions: Submission[];
@@ -375,7 +375,7 @@ interface RoboContestHubViewsProps {
   onSelectTest: (test: TestItem) => void;
 }
 
-export const RoboContestHubViews: React.FC<RoboContestHubViewsProps> = ({
+export const KITESTHubViews: React.FC<KITESTHubViewsProps> = ({
   currentUser,
   users,
   submissions,
@@ -638,7 +638,7 @@ export const RoboContestHubViews: React.FC<RoboContestHubViewsProps> = ({
   };
 
   // =========================================================================
-  // 3. 365-KUNLIK FAOLLIK XARITASI (ROBOCONTEST HEATMAP)
+  // 3. 365-KUNLIK FAOLLIK XARITASI (KITEST HEATMAP)
   // =========================================================================
   const mySubmissions = useMemo(
     () =>
@@ -678,12 +678,12 @@ export const RoboContestHubViews: React.FC<RoboContestHubViewsProps> = ({
         </motion.div>
       )}
 
-      {/* Top RoboContest Pro Header & Mode Switcher */}
+      {/* Top KITEST Pro Header & Mode Switcher */}
       <div className="p-6 rounded-3xl bg-slate-900/95 border border-slate-800 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-extrabold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>KITEST PRO · ROBOCONTEST USLUBIDAGI MAXSUS TIZIMLAR</span>
+            <span>KITEST PRO · KITEST USLUBIDAGI MAXSUS TIZIMLAR</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             1v1 Bilim Duellari, Kod Poligoni va Faollik Xaritasi
@@ -985,7 +985,7 @@ export const RoboContestHubViews: React.FC<RoboContestHubViewsProps> = ({
           <div className="lg:col-span-4 p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-3">
             <div className="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-2">
               <Code2 className="w-4 h-4" />
-              <span>RoboContest Algoritmik Masalalar</span>
+              <span>KITEST Algoritmik Masalalar</span>
             </div>
 
             <div className="space-y-2">
@@ -1183,14 +1183,14 @@ export const RoboContestHubViews: React.FC<RoboContestHubViewsProps> = ({
       )}
 
       {/* =================================================================== */}
-      {/* SECTION 3: FAOLLIK XARITASI (ROBOCONTEST HEATMAP VA STATISTIKA)     */}
+      {/* SECTION 3: FAOLLIK XARITASI (KITEST HEATMAP VA STATISTIKA)     */}
       {/* =================================================================== */}
       {section === 'activity' && (
         <div className="p-6 rounded-3xl bg-slate-900/95 border border-slate-800 space-y-6 shadow-2xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-xs font-mono uppercase text-emerald-400 font-bold">
-                ROBOCONTEST FAOLLIK KALENDARI
+                KITEST FAOLLIK KALENDARI
               </div>
               <h2 className="text-xl font-black text-white">
                 Kunlik Yechilgan Masalalar va Urinishlar Xaritasi

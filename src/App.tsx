@@ -47,7 +47,7 @@ import {
   HowItWorksView,
   OurTeamView,
 } from './components/PlatformHubViews';
-import { RoboContestHubViews } from './components/RoboContestHubViews';
+import { KITESTHubViews } from './components/KITESTHubViews';
 import {
   BackgroundCustomizerModal,
   CustomBackgroundConfig,
@@ -144,7 +144,7 @@ const THEME_STORAGE_KEY = 'kitest_theme_mode';
 const SOUND_STORAGE_KEY = 'kitest_sound_enabled';
 const BG_CONFIG_STORAGE_KEY = 'kitest_custom_bg_v1';
 
-// RoboContest Standard Hash-Based URL Routing ("har bitta bo'lim uchun alohida havola/oyna")
+// KITEST Standard Hash-Based URL Routing ("har bitta bo'lim uchun alohida havola/oyna")
 export const TAB_TO_HASH: Record<NavTab, string> = {
   home: '#/home',
   problems: '#/tasks',
@@ -218,6 +218,65 @@ export const HASH_TO_TAB: Record<string, NavTab> = {
   '#/portal': 'auth_portal',
 };
 
+let ringtoneAudioCtx: AudioContext | null = null;
+let ringtoneIntervalTimer: any = null;
+
+function playIncomingCallRingtone() {
+  try {
+    stopIncomingCallRingtone();
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    ringtoneAudioCtx = new AudioCtx();
+
+    const ringTone = () => {
+      if (!ringtoneAudioCtx || ringtoneAudioCtx.state === 'closed') return;
+      const now = ringtoneAudioCtx.currentTime;
+      const osc1 = ringtoneAudioCtx.createOscillator();
+      const osc2 = ringtoneAudioCtx.createOscillator();
+      const gain = ringtoneAudioCtx.createGain();
+
+      osc1.frequency.setValueAtTime(440, now);
+      osc2.frequency.setValueAtTime(480, now);
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+      gain.gain.setValueAtTime(0.2, now + 0.8);
+      gain.gain.linearRampToValueAtTime(0, now + 0.9);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ringtoneAudioCtx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.95);
+      osc2.stop(now + 0.95);
+    };
+
+    ringTone();
+    setTimeout(ringTone, 1100);
+    ringtoneIntervalTimer = setInterval(() => {
+      ringTone();
+      setTimeout(ringTone, 1100);
+    }, 3000);
+  } catch {}
+}
+
+function stopIncomingCallRingtone() {
+  if (ringtoneIntervalTimer) {
+    clearInterval(ringtoneIntervalTimer);
+    ringtoneIntervalTimer = null;
+  }
+  if (ringtoneAudioCtx) {
+    try {
+      ringtoneAudioCtx.close();
+    } catch {}
+    ringtoneAudioCtx = null;
+  }
+}
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [selectedTest, setSelectedTest] = useState<TestItem | null>(null);
@@ -234,8 +293,14 @@ export default function App() {
     "⚠️ Xavfsizlik ogohlantiruvi: Ushbu hisobga boshqa qurilmadan kirildi. Bir vaqtning o'zida ikkita kishi bitta hisobdan foydalana olmaydi!"
   );
 
-  // Theme state: cosmic dark mode strictly maintained across all devices
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // Theme state: read saved theme or default to cosmic dark
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch {}
+    return 'dark';
+  });
 
   // User-customizable Dashboard & Platform Background State
   const [bgConfig, setBgConfig] = useState<CustomBackgroundConfig>(() => {
@@ -285,10 +350,13 @@ export default function App() {
 
   const handleToggleTheme = () => {
     playKitestSound('click', soundEnabled);
-    setTheme('dark');
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, 'dark');
-    } catch {}
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch {}
+      return next;
+    });
   };
 
   const handleToggleSound = () => {
@@ -416,7 +484,7 @@ export default function App() {
     };
   });
 
-  // Dedicated Viewing User state (RoboContest profile view for any participant)
+  // Dedicated Viewing User state (KITEST profile view for any participant)
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -461,19 +529,10 @@ export default function App() {
       localStorage.removeItem('kitest_user');
       const saved = localStorage.getItem(AUTH_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id) return parsed;
       }
     } catch {}
-    const defaultAdmin =
-      initialClientState.users?.find(
-        (u: any) => u.username === 'behruz_admin'
-      ) || initialClientState.users?.[0];
-    if (defaultAdmin) {
-      try {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultAdmin));
-      } catch {}
-      return defaultAdmin;
-    }
     return null;
   });
 
@@ -512,6 +571,44 @@ export default function App() {
   const [showcaseTargetUrl, setShowcaseTargetUrl] = useState<string | undefined>(
     undefined
   );
+
+  // Real-time Incoming Live Invite State (Roblox-style Invite & Ringtone)
+  const [incomingInvite, setIncomingInvite] = useState<any | null>(null);
+
+  // Inactivity Presence Prompt State ("har ikkiminutda korilmagan bolsa korish spraydi")
+  const [isIdlePromptOpen, setIsIdlePromptOpen] = useState<boolean>(false);
+  const lastActiveTimeRef = useRef<number>(Date.now());
+
+  const handleRespondToInvite = async (accepted: boolean) => {
+    stopIncomingCallRingtone();
+    if (!incomingInvite) return;
+    const inv = incomingInvite;
+    setIncomingInvite(null);
+
+    try {
+      await fetch('/api/wallet/invite-respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteId: inv.id,
+          senderId: inv.senderId,
+          targetUserId: currentUser?.id,
+          accepted,
+        }),
+      });
+    } catch {}
+
+    if (accepted) {
+      playKitestSound('victory', soundEnabled);
+      if (inv.inviteType === 'duel') {
+        navigateTab('duels');
+      } else {
+        setIsExchangeModalOpen(true);
+      }
+    } else {
+      playKitestSound('click', soundEnabled);
+    }
+  };
 
   const handleOpenImageShowcase = useCallback(
     (target?: ShowcaseImageItem | string) => {
@@ -971,7 +1068,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // RoboContest Standard Hash-Based URL Routing Listener
+  // KITEST Standard Hash-Based URL Routing Listener
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash || '';
@@ -979,16 +1076,26 @@ export default function App() {
         if (currentTab !== 'home') setCurrentTab('home');
         return;
       }
-      if (hash.startsWith('#/user/') || hash.startsWith('#/profile/')) {
-        const uName = decodeURIComponent(hash.split('/')[2] || '').trim().replace(/^@+/, '');
+      if (
+        hash.startsWith('#/user/') ||
+        hash.startsWith('#/profile/') ||
+        hash.startsWith('#/student/')
+      ) {
+        const uName = decodeURIComponent(hash.split('/')[2] || '')
+          .trim()
+          .replace(/^@+/, '')
+          .toLowerCase();
         if (uName) {
           const found = users.find(
             (u) =>
-              u.username.toLowerCase() === uName.toLowerCase() ||
-              u.id.toLowerCase() === uName.toLowerCase()
+              u.username.toLowerCase() === uName ||
+              u.id.toLowerCase() === uName ||
+              u.username.toLowerCase().includes(uName) ||
+              u.name.toLowerCase().includes(uName)
           );
           if (found) {
             setViewingUser(found);
+            setIsProfileOpen(true);
             return;
           }
         }
@@ -1037,6 +1144,29 @@ export default function App() {
                   setIsSecurityAlertOpen(true);
                 }
               }
+            } else if (data.type === 'invite:incoming' && data.invite) {
+              const inv = data.invite;
+              if (
+                currentUser &&
+                (inv.targetUserId === currentUser.id ||
+                  inv.targetUsername?.toLowerCase() === currentUser.username?.toLowerCase())
+              ) {
+                setIncomingInvite(inv);
+                playIncomingCallRingtone();
+              }
+            } else if (data.type === 'invite:response') {
+              if (currentUser && data.senderId === currentUser.id) {
+                if (data.accepted) {
+                  playKitestSound('victory', soundEnabled);
+                  if (data.inviteType === 'duel') {
+                    navigateTab('duels');
+                  } else {
+                    setIsExchangeModalOpen(true);
+                  }
+                } else {
+                  playKitestSound('warning', soundEnabled);
+                }
+              }
             }
           } catch {}
         };
@@ -1052,6 +1182,29 @@ export default function App() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }, [currentUser, soundEnabled]);
+
+  // User Presence & 2-Minute Inactivity Prompt ("har ikkiminutda korilmagan bolsa korish spraydi")
+  useEffect(() => {
+    const markActive = () => {
+      lastActiveTimeRef.current = Date.now();
+    };
+
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+    events.forEach((ev) => window.addEventListener(ev, markActive, { passive: true }));
+
+    const checkInterval = setInterval(() => {
+      // 2 minutes = 120,000 milliseconds
+      const idleMs = Date.now() - lastActiveTimeRef.current;
+      if (idleMs >= 120000 && !isIdlePromptOpen && hasEnteredPortal) {
+        setIsIdlePromptOpen(true);
+      }
+    }, 5000);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, markActive));
+      clearInterval(checkInterval);
+    };
+  }, [isIdlePromptOpen, hasEnteredPortal]);
 
   // Periodic active session validation (every 7 seconds)
   useEffect(() => {
@@ -1165,6 +1318,8 @@ export default function App() {
           <KitestSkyLandingView
             currentUser={currentUser}
             isAdminUnlocked={isAdminUnlocked}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
             tests={tests}
             users={users}
             onOpenAuth={(mode) => {
@@ -2266,7 +2421,7 @@ export default function App() {
                     ) : currentTab === 'duels' ||
                       currentTab === 'code_arena' ||
                       currentTab === 'activity_map' ? (
-                      <RoboContestHubViews
+                      <KITESTHubViews
                         currentUser={currentUser}
                         users={users}
                         submissions={submissions}
@@ -2279,7 +2434,7 @@ export default function App() {
                             : 'duels'
                         }
                         soundEnabled={soundEnabled}
-                        onUpdateUser={(updated) => {
+                        onUpdateUser={(updated: User) => {
                           setCurrentUser(updated);
                           localStorage.setItem(
                             AUTH_STORAGE_KEY,
@@ -2642,6 +2797,8 @@ export default function App() {
         onClose={() => setIsExchangeModalOpen(false)}
         currentUser={currentUser}
         soundEnabled={soundEnabled}
+        onlineUsers={onlineUsers}
+        allUsers={users}
         onUpdateUser={(updated) => {
           setCurrentUser(updated);
           localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
@@ -2746,6 +2903,90 @@ export default function App() {
               className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm shadow-lg shadow-red-600/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               Tushundim (Qaytadan Kirish)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Real-time Incoming Live Invite Alert Modal (Roblox-style with Ringtone Chime) */}
+      {incomingInvite && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-gradient-to-b from-[#0e162d] to-[#070b18] border-2 border-emerald-500/50 p-6 text-center shadow-[0_0_60px_rgba(16,185,129,0.35)] text-white space-y-4">
+            <div className="relative w-20 h-20 mx-auto rounded-3xl bg-emerald-500/20 border-2 border-emerald-400/60 flex items-center justify-center text-4xl shadow-lg">
+              <span className="animate-bounce">📞</span>
+              <span className="absolute -inset-2 rounded-3xl border-2 border-emerald-400/50 animate-ping" />
+            </div>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Jonli Chaqiruv (Live Invite)
+              </div>
+              <h3 className="text-xl font-black text-white">
+                {incomingInvite.senderName || 'Foydalanuvchi'}
+              </h3>
+              <p className="text-xs text-emerald-400 font-mono mt-0.5">
+                @{incomingInvite.senderUsername}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed px-4">
+              {incomingInvite.inviteType === 'duel'
+                ? "Sizni 1v1 Jonli Algoritmik Duelga chaqirmoqda! Qo'ng'iroq chalinmoqda..."
+                : "Sizni real-vaqtda P2P Trade / Savdoga chaqirmoqda! Qo'ng'iroq chalinmoqda..."}
+            </p>
+
+            {incomingInvite.note && (
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-slate-200 italic">
+                "{incomingInvite.note}"
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => handleRespondToInvite(false)}
+                className="py-3 px-4 rounded-2xl bg-slate-800 hover:bg-rose-950/80 hover:border-rose-500/60 border border-slate-700 text-slate-300 hover:text-rose-300 font-black text-xs cursor-pointer transition-all"
+              >
+                ❌ Rad etish
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRespondToInvite(true)}
+                className="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs shadow-lg shadow-emerald-600/40 cursor-pointer transition-all animate-pulse"
+              >
+                ✅ Qabul qilish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2-Minute Inactivity Presence Prompt ("har ikkiminutda korilmagan bolsa korish spraydi") */}
+      {isIdlePromptOpen && (
+        <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl bg-[#0a0f1d] border-2 border-indigo-500/40 p-6 text-center shadow-[0_0_50px_rgba(99,102,241,0.3)] text-white space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-3xl animate-pulse">
+              👋
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white">
+                Hali ham shu yerdamisiz?
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Platformada 2 daqiqadan beri faollik kuzatilmadi. Tizimda davom etishni tasdiqlaysizmi?
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                lastActiveTimeRef.current = Date.now();
+                setIsIdlePromptOpen(false);
+                playKitestSound('click', soundEnabled);
+              }}
+              className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-500 hover:to-blue-500 text-white font-black text-xs shadow-lg shadow-indigo-600/40 cursor-pointer transition-all"
+            >
+              ✅ Ha, davom etish
             </button>
           </div>
         </div>

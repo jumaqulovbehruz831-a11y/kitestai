@@ -64,7 +64,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     return 95;
   };
 
-  // RoboContest Feature 1: Masalalar Kitobini Yuklab Olish
+  // KITEST Feature 1: Masalalar Kitobini Yuklab Olish
   const handleDownloadProblemBook = () => {
     const lines: string[] = [
       '====================================================================',
@@ -101,7 +101,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // RoboContest Feature 2: Tasodifiy Masala Tanlash
+  // KITEST Feature 2: Tasodifiy Masala Tanlash
   const handlePickRandomProblem = () => {
     if (tests.length === 0) return;
     const unsolved = tests.filter((t) => !solvedTestIds.has(t.id));
@@ -167,7 +167,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
           </p>
         </div>
 
-        {/* RoboContest Action Toolbar: Masalalar Kitobi + Tasodifiy Masala + Create */}
+        {/* KITEST Action Toolbar: Masalalar Kitobi + Tasodifiy Masala + Create */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"

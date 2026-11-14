@@ -562,16 +562,7 @@
   },
   "securityConfig": {
     "screenshotProtectionEnabled": true,
-    "updatedAt": "2026-11-06T10:44:10.218Z",
-    "externalLinks": {
-      "kitestGramUrl": "https://t.me/kitestai",
-      "raqamliUstozUrl": "https://raqamliustoz.uz",
-      "kodYozishUrl": "",
-      "youtubeUrl": "https://youtube.com/@kitest_uz",
-      "githubUrl": "https://github.com/kitest-platform",
-      "kitestBotUrl": "https://t.me/kitest",
-      "aiAssistantUrl": ""
-    }
+    "updatedAt": "2026-11-06T10:44:10.218Z"
   },
   "studyPlans": [],
   "algorithms": [],
@@ -697,6 +688,16 @@
   ],
   "notifications": [
     {
+      "id": "notif_1794245304950_v6qh",
+      "title": "🤝 Jonli Trade Taklifi!",
+      "text": "Jumaqulov Hojiakbar (@hojiakbar) sizni P2P Trade ga taklif qilmoqda!",
+      "icon": "🤝",
+      "tab": "shop",
+      "userId": "usr_admin_1790485620656",
+      "createdAt": "2026-11-09T17:28:24.950Z",
+      "readBy": []
+    },
+    {
       "id": "notif_1793417214468_iwnl",
       "title": "🏆 Respublika Matematika Olimpiadasi Boshlandi!",
       "text": "Barcha bilimdonlar uchun 1-bosqich testlari ochildi. Omad!",
@@ -794,6 +795,36 @@
       "category": "olympiad",
       "description": "Python, C++ va Algoritmlar bo'yicha ko'rgazma",
       "createdAt": "2026-11-06T10:43:24.850Z"
+    }
+  ],
+  "tradeOffers": [
+    {
+      "id": "trade_init_1",
+      "creatorId": "usr_admin_default",
+      "creatorName": "Behruz Jumaqulov",
+      "creatorUsername": "behruz_admin",
+      "creatorAvatar": "/founder_portrait.jpg",
+      "offeringType": "coins",
+      "offeringAmount": 200,
+      "requestingType": "stars",
+      "requestingAmount": 4,
+      "note": "Tezkor ayirboshlash: 200 Tanga bera olaman!",
+      "status": "active",
+      "createdAt": "2026-11-09T17:28:00.744Z"
+    },
+    {
+      "id": "trade_init_2",
+      "creatorId": "usr_admin_default",
+      "creatorName": "Behruz Jumaqulov",
+      "creatorUsername": "behruz_admin",
+      "creatorAvatar": "/founder_portrait.jpg",
+      "offeringType": "points",
+      "offeringAmount": 300,
+      "requestingType": "coins",
+      "requestingAmount": 250,
+      "note": "Reyting balimdan 300 ball taqdim etaman!",
+      "status": "active",
+      "createdAt": "2026-11-09T17:28:00.744Z"
     }
   ]
 }

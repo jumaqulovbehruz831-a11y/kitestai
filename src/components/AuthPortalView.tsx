@@ -74,7 +74,7 @@ const STUDIO_SHOWCASE_SLIDES = [
     tag: 'GOOGLE AI STUDIO USLUBIDAGI MUHIT',
     title: "KITEST.AI Studio — Intellektual Algoritm va Test Poligoni",
     subtitle:
-      "Python, JavaScript, C++ va Java tillarida real vaqtda kod yechish, AI yordamida soniyalar ichida test tuzish hamda 1v1 RoboContest bilim duellari.",
+      "Python, JavaScript, C++ va Java tillarida real vaqtda kod yechish, AI yordamida soniyalar ichida test tuzish hamda 1v1 KITEST bilim duellari.",
     accent: 'from-sky-500/30 via-indigo-500/20 to-transparent',
     stat: '⚡ 4 ta Dasturlash Tili + AI Generator',
   },

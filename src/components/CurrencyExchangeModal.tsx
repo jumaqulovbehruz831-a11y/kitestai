@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { User } from '../types';
+import { User, OnlinePresenceUser } from '../types';
 import { playKitestSound } from './KitestEmblem';
 import { triggerScoreReward } from './FloatingScoreRewardOverlay';
 import {
@@ -18,6 +18,8 @@ import {
   PlusCircle,
   Clock,
   ArrowRight,
+  PhoneCall,
+  Radio,
 } from 'lucide-react';
 
 interface CurrencyExchangeModalProps {
@@ -27,6 +29,8 @@ interface CurrencyExchangeModalProps {
   onUpdateUser: (updated: User) => void;
   onRequireLogin: () => void;
   soundEnabled?: boolean;
+  onlineUsers?: OnlinePresenceUser[];
+  allUsers?: User[];
 }
 
 export type CurrencyType = 'points' | 'coins' | 'stars';
@@ -53,6 +57,8 @@ export const CurrencyExchangeModal: React.FC<CurrencyExchangeModalProps> = ({
   onUpdateUser,
   onRequireLogin,
   soundEnabled = true,
+  onlineUsers = [],
+  allUsers = [],
 }) => {
   const [activeTab, setActiveTab] = useState<'auto' | 'trade' | 'transfer'>('auto');
   
@@ -63,6 +69,10 @@ export const CurrencyExchangeModal: React.FC<CurrencyExchangeModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Roblox-style Live Invitation State
+  const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
+  const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
 
   // P2P Trade State
   const [tradeOffers, setTradeOffers] = useState<TradeOffer[]>([]);
@@ -77,6 +87,40 @@ export const CurrencyExchangeModal: React.FC<CurrencyExchangeModalProps> = ({
   const [transferTargetUsername, setTransferTargetUsername] = useState('');
   const [transferCurrencyType, setTransferCurrencyType] = useState<CurrencyType>('coins');
   const [transferAmount, setTransferAmount] = useState<number>(20);
+
+  const handleSendLiveInvite = async (targetId: string, targetUsername: string) => {
+    if (!currentUser) {
+      onRequireLogin();
+      return;
+    }
+    setInvitingUserId(targetId);
+    setInviteSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/wallet/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderId: currentUser.id,
+          targetUserId: targetId,
+          inviteType: 'trade',
+          note: 'KITEST Jonli P2P Trade savdosiga taklif qilmoqda!',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        playKitestSound('success', soundEnabled);
+        setInviteSuccessMsg(`@${targetUsername} ga qo'ng'iroq chaqiruvi yuborildi!`);
+        setTimeout(() => setInviteSuccessMsg(null), 4000);
+      } else {
+        setErrorMsg(data.error || 'Taklif yuborishda xatolik yuz berdi');
+      }
+    } catch {
+      setErrorMsg("Server bilan bog'lanib bo'lmadi");
+    } finally {
+      setInvitingUserId(null);
+    }
+  };
 
   const fetchTradeOffers = async () => {
     try {
@@ -608,6 +652,69 @@ export const CurrencyExchangeModal: React.FC<CurrencyExchangeModalProps> = ({
           {/* TAB 2: P2P TRADE MARKETPLACE */}
           {activeTab === 'trade' && (
             <div className="space-y-4">
+              {/* ROBLOX-STYLE LIVE ONLINE USERS INVITATION PANEL */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-slate-900 border border-purple-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-xs font-black text-white flex items-center gap-1.5">
+                      <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
+                      Jonli Chaqiruv (Roblox-style Live Invite)
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {onlineUsers.length} foydalanuvchi onlayn
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Onlayn turgan foydalanuvchilarga to'g'ridan-to'g'ri qo'ng'iroq chaqiruvi yuboring va real vaqtda birga savdo qiling!
+                </p>
+
+                {inviteSuccessMsg && (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>{inviteSuccessMsg}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
+                  {(onlineUsers.length > 0
+                    ? onlineUsers.filter((u) => !currentUser || (u.userId || (u as any).id) !== currentUser.id)
+                    : allUsers.filter((u) => !currentUser || u.id !== currentUser.id).slice(0, 8)
+                  ).map((p: any) => {
+                    const targetId = p.userId || p.id;
+                    return (
+                      <div
+                        key={targetId}
+                        className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-purple-500/25 hover:border-purple-400/50 transition-all text-xs"
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-purple-600/30 border border-purple-400/40 flex items-center justify-center font-bold text-white text-[10px] overflow-hidden">
+                          {p.avatarUrl ? (
+                            <img src={p.avatarUrl} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            p.avatarEmoji || (p.name || 'U').charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="leading-tight">
+                          <div className="font-bold text-white text-[11px] truncate max-w-[90px]">{p.name}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">@{p.username}</div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={invitingUserId === targetId}
+                          onClick={() => handleSendLiveInvite(targetId, p.username)}
+                          className="ml-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                          title="Jonli chaqiruv qo'ng'irog'i yuborish"
+                        >
+                          <PhoneCall className="w-3 h-3" />
+                          <span>{invitingUserId === targetId ? '...' : 'Chaqirish'}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-purple-400" />

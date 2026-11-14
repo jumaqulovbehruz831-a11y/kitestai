@@ -247,7 +247,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return submissions.filter((s) => s.userId === user.id);
   }, [submissions, user]);
 
-  // Generate 52 weeks x 7 days Activity Heatmap (RoboContest 365 days contribution grid)
+  // Generate 52 weeks x 7 days Activity Heatmap (KITEST 365 days contribution grid)
   const activityDays = useMemo(() => {
     const days: { dateStr: string; count: number; dayOfWeek: number }[] = [];
     const now = new Date(2026, 10, 6); // November 6, 2026
@@ -285,7 +285,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   const handleCopyProfileLink = () => {
     if (!user) return;
-    const url = `${window.location.origin}/profile/${user.username || 'behruz_boy'}`;
+    const url = `${window.location.origin}/#/student/${encodeURIComponent(user.username || 'behruz_admin')}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedLink(true);
       playKitestSound('coin', soundEnabled);
@@ -402,7 +402,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
               <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider">
-                RoboContest Profil · robocontest.uz
+                KITEST Profil · kitest.uz
               </span>
             </div>
 
@@ -418,7 +418,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
           <div className="overflow-y-auto flex-1 p-5 sm:p-7 space-y-6">
             {/* ============================================================== */}
-            {/* 1. ROBOCONTEST PROFILE HEADER (100% Matching Screenshot 8)     */}
+            {/* 1. KITEST PROFILE HEADER (100% Matching Screenshot 8)     */}
             {/* ============================================================== */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 p-5 rounded-2xl bg-[#0f172a]/90 border border-indigo-500/25 shadow-xl relative overflow-hidden">
               {/* Background Glow */}
@@ -651,7 +651,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </h3>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {user.bio ||
-                      "KITEST va RoboContest intellektual dasturlash platformasi a'zosi. Algoritmlar, matematika va fan olimpiadalarida muntazam faol ishtirokchi."}
+                      "KITEST intellektual dasturlash platformasi a'zosi. Algoritmlar, matematika va fan olimpiadalarida muntazam faol ishtirokchi."}
                   </p>
                 </div>
 
@@ -736,7 +736,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             )}
 
             {/* ============================================================== */}
-            {/* TAB 3: FAOLLIK (365-day GitHub / RoboContest Heatmap Matrix)    */}
+            {/* TAB 3: FAOLLIK (365-day GitHub / KITEST Heatmap Matrix)    */}
             {/* ============================================================== */}
             {activeTab === 'faollik' && (
               <div className="space-y-4">
@@ -744,7 +744,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-mono uppercase text-emerald-400 font-bold">
-                        ROBOCONTEST 365-KUNLIK KALENDAR
+                        KITEST 365-KUNLIK KALENDAR
                       </div>
                       <h3 className="text-base font-black text-white">
                         2026-yildagi faollik: {totalContributions} ta mashq
@@ -1030,7 +1030,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="p-5 rounded-2xl bg-[#0f172a]/60 border border-slate-800 space-y-4 text-center">
                   <Award className="w-10 h-10 text-amber-400 mx-auto" />
                   <h3 className="text-sm font-extrabold text-white">
-                    KITEST & RoboContest Rasmiy Sertifikatlari
+                    KITEST Rasmiy Sertifikatlari
                   </h3>
                   <p className="text-xs text-slate-300 max-w-md mx-auto">
                     Test va musobaqalarda 100% natija qayd etganingizda yoki Do'kondan xarid qilganingizda sertifikatlaringiz bu yerda saqlanadi.

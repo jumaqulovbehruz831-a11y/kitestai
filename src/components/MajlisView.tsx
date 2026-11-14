@@ -71,6 +71,7 @@ export const MajlisView: React.FC<MajlisViewProps> = ({
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const spotlightVideoRef = useRef<HTMLVideoElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -256,15 +257,32 @@ export const MajlisView: React.FC<MajlisViewProps> = ({
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: wantVideo
-          ? { width: { ideal: 640 }, height: { ideal: 360 }, facingMode: 'user' }
+          ? {
+              width: { ideal: 640, max: 1280 },
+              height: { ideal: 360, max: 720 },
+              frameRate: { ideal: 24, max: 30 },
+              facingMode: 'user',
+            }
           : false,
-        audio: wantAudio,
+        audio: wantAudio
+          ? {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            }
+          : false,
       });
 
       localStreamRef.current = stream;
       if (localVideoRef.current) {
+        localVideoRef.current.muted = true;
         localVideoRef.current.srcObject = stream;
         await localVideoRef.current.play().catch(() => {});
+      }
+      if (spotlightVideoRef.current) {
+        spotlightVideoRef.current.muted = true;
+        spotlightVideoRef.current.srcObject = stream;
+        await spotlightVideoRef.current.play().catch(() => {});
       }
       setCameraOn(wantVideo && stream.getVideoTracks().length > 0);
       setMicOn(wantAudio && stream.getAudioTracks().length > 0);
@@ -669,7 +687,7 @@ export const MajlisView: React.FC<MajlisViewProps> = ({
             <div className="relative overflow-hidden rounded-3xl border-2 border-indigo-500/60 bg-slate-950 aspect-video shadow-2xl">
               {pinnedParticipant.userId === user.id && (cameraOn || screenSharing) ? (
                 <video
-                  ref={localVideoRef}
+                  ref={spotlightVideoRef}
                   autoPlay
                   playsInline
                   muted
